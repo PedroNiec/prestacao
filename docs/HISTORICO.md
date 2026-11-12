@@ -225,7 +225,10 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
   contraste, **mas não por captura de tela**. Defeitos de espaçamento só aparecem no navegador.
 - O plano principal ainda tem duas linhas desatualizadas na Etapa 7 ("cálculo a partir do balancete,
   sobrescritas"): na implementação o físico-financeiro é **todo digitado**. A **spec** (v1.7+) é a referência.
-- Não há git: o histórico de versões é só o que está nos documentos. (Ver o guia para sugestão.)
+- **Git:** repositório **público** em `https://github.com/PedroNiec/prestacao` (branch `main`). Primeiro commit em
+  2026-11-12. `storage/` e `planilha/` (dados reais) ficam **fora** de propósito; o commit usa o e-mail pessoal
+  do usuário. Antes de publicar, uma verificação de dados pessoais achou o nome da empresa no `composer.json`
+  (pacote `ixcsoft/prestacao`), trocado por `pedroniec/prestacao`.
 - Os PDFs não são idênticos pixel a pixel à planilha (decisão do usuário: "muito próximo").
 
 ---

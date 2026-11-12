@@ -4,7 +4,8 @@
 
 **Resumo em 6 passos**
 
-1. Copie a **pasta do projeto inteira** (inclusive a pasta oculta `.claude`), **sem** `vendor/`.
+1. **Clone o repositório** (`git clone https://github.com/PedroNiec/prestacao.git`) — ou, sem git, copie a pasta
+   do projeto inteira (inclusive a oculta `.claude`), **sem** `vendor/`.
 2. Instale no outro computador: PHP 8.3 (com as extensões), Composer, Ghostscript e LibreOffice.
 3. Rode `composer install` e `composer test` (esperado: **247 testes OK**).
 4. Abra o Claude Code **dentro da pasta do projeto**.
@@ -23,7 +24,7 @@
 | `vendor/` | **Não** | Recriado com `composer install` (23 MB) |
 | `storage/` | **Só se for usar o sistema lá** | É onde ficam **seus dados** (banco e PDFs). Ver seção 3 |
 | `.idea/`, `.phpunit.result.cache` | Não | Só do editor e dos testes |
-| `planilha/` | Opcional | Planilha de referência. **Contém dados reais** de convênio (nomes e CNPJ) |
+| `planilha/` | Opcional | Planilha de referência. **Contém dados reais** de convênio. **Não está no git**: copie à parte, se precisar |
 
 > **Cuidado com arquivos ocultos:** ao copiar com pen drive, nuvem ou "arrastar", confirme que o `.claude`
 > foi junto. No terminal: `ls -A` mostra os ocultos.
@@ -180,31 +181,39 @@ e o próximo passo. Atualize também os status em specs/ e plans/ se algo mudou.
 
 ---
 
-## 7. Sincronizar o código entre os computadores
+## 7. Sincronizar o código entre os computadores (git)
 
-O projeto **não usa git**. Duas opções:
+O projeto agora usa **git**. O repositório é **público**: `https://github.com/PedroNiec/prestacao` (branch `main`).
 
-**A) Git (recomendado, se você topar):** controla versões, permite voltar atrás e sincroniza o código.
-O `.gitignore` já exclui `vendor/` e `storage/` (seus dados nunca entram).
-
-```bash
-git init
-git add .
-git commit -m "Estado inicial"
-```
-
-Depois, use um repositório **privado** (GitHub/GitLab) para levar e trazer. **Atenção:** `planilha/` tem
-dados reais de convênio e **não** está no `.gitignore`; decida se ela deve ir para o repositório (ou
-acrescente `/planilha/` ao `.gitignore`).
-
-**B) Cópia manual** (pen drive, nuvem ou `rsync`):
+**No outro computador (primeira vez):**
 
 ```bash
-rsync -av --exclude vendor --exclude storage --exclude .idea ./ usuario@outro-pc:/caminho/prestacao/
+git clone https://github.com/PedroNiec/prestacao.git
+cd prestacao
+git config user.name  "Seu Nome"          # configure SÓ neste projeto, para não expor outro e-mail
+git config user.email "seu-email-publico@exemplo.com"   # use o e-mail que você quer ver público nos commits
+composer install && composer test
 ```
 
-> Para evitar conflitos, **trabalhe em um computador por vez** e sempre copie a versão mais recente antes
-> de começar. Sem git, não há como juntar duas versões editadas ao mesmo tempo.
+O clone já traz a pasta oculta `.claude` (a skill `/spec-driven`). **Não** vêm: `vendor/` (rode `composer install`),
+`storage/` (seus dados) e `planilha/` (dados reais).
+
+**Rotina de trabalho:**
+
+```bash
+git pull                                  # ANTES de começar: traz o que foi feito no outro computador
+# ... trabalhar (com o Claude) ...
+git add -A && git commit -m "descrição"   # ou peça ao Claude para commitar
+git push                                  # DEPOIS: envia para o GitHub
+```
+
+- **Autenticação:** o GitHub não aceita senha no `git push` por HTTPS; use um *Personal Access Token*, o
+  `gh auth login` (GitHub CLI) ou uma chave SSH.
+- Trabalhe em **um computador por vez** e sempre faça `git pull` antes de começar, para evitar conflitos.
+- **Nunca** coloque no git: `storage/`, `planilha/`, `.env` ou qualquer dado real. O `.gitignore` já exclui
+  `vendor/`, `storage/*`, `planilha/`, `.idea/` e o cache do PHPUnit. **Como o repositório é público, tudo
+  que for commitado fica visível para qualquer pessoa.**
+- Sem git (pen drive, nuvem ou `rsync`): `rsync -av --exclude vendor --exclude storage --exclude .idea ./ usuario@outro-pc:/caminho/prestacao/`
 
 ---
 
@@ -240,6 +249,7 @@ rsync -av --exclude vendor --exclude storage --exclude .idea ./ usuario@outro-pc
 ## 10. Segurança e privacidade
 
 - O sistema **não tem login**: use só em computador seu e **não** exponha à rede.
-- `storage/` e `planilha/` têm **dados reais de convênios públicos**. Não os envie a repositórios públicos,
-  e-mails ou serviços de terceiros sem decidir conscientemente.
+- `storage/` e `planilha/` têm **dados reais de convênios públicos**. Eles ficam **fora do git** de propósito:
+  o repositório é **público**. Não os envie a repositórios, e-mails ou serviços de terceiros sem decidir
+  conscientemente. Os testes e documentos usam alguns nomes e um CNPJ da planilha apenas como **exemplo**.
 - Ao trocar de computador, apague os dados do computador que você deixar de usar, se for compartilhado.
