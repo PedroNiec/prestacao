@@ -1,0 +1,9 @@
+/vendor/
+/storage/*
+!/storage/.gitkeep
+.phpunit.cache/
+.idea/
+.phpunit.result.cache
+
+# Planilha de referência: contém dados reais de um convênio e metadados pessoais; fica só local
+/planilha/

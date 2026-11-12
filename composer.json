@@ -1,0 +1,38 @@
+{
+    "name": "pedroniec/prestacao",
+    "description": "Sistema local de prestação de contas",
+    "type": "project",
+    "require": {
+        "php": ">=8.3",
+        "ext-pdo_sqlite": "*",
+        "ext-mbstring": "*",
+        "ext-zip": "*",
+        "ext-fileinfo": "*",
+        "ext-gd": "*",
+        "dompdf/dompdf": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        },
+        "files": [
+            "src/Core/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "serve": "php -d upload_max_filesize=50M -d post_max_size=60M -d max_file_uploads=100 -S 127.0.0.1:8000 -t public public/index.php",
+        "migrate": "php bin/migrate.php",
+        "test": "phpunit"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
