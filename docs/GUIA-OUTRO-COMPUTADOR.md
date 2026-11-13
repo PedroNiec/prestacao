@@ -153,8 +153,8 @@ Não altere nenhum arquivo ainda e siga o processo SDD (CLAUDE.md): nada de impl
 
 ```text
 /spec-driven Vamos retomar o redesenho visual tela por tela, no mesmo estilo aprovado de Municípios
-(specs/redesenho-layout-municipios.md). Antes, resolva o tamanho do CSS (39,4 de 40 KB; ver HISTORICO §9).
-Próxima tela: [tela do Projeto / formulários / balancete / conciliação / físico-financeiro / junção].
+(specs/redesenho-layout-municipios.md). O CSS já foi dividido por área (ver HISTORICO §3.3).
+Próxima tela: [formulários / balancete / conciliação / físico-financeiro / junção] (a tela do Projeto já foi redesenhada).
 Me mostre opções com esboços antes de escrever a spec.
 ```
 

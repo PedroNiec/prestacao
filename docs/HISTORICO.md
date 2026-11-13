@@ -1,6 +1,6 @@
 # Histórico do projeto — Sistema de Prestação de Contas
 
-**Atualizado em:** 2026-11-13 (sessão de ajustes: PDF e grid do balancete, sidebar recolhível, receitas da conciliação independentes)
+**Atualizado em:** 2026-11-13 (sessão de ajustes: PDF e grid do balancete, sidebar recolhível, receitas da conciliação independentes, CSS dividido por área e tela do Projeto redesenhada)
 **Para quem é:** você e qualquer sessão futura do Claude que precise saber **onde paramos, o que foi
 decidido e por quê**. Complementa os documentos oficiais em `specs/` e `plans/` (que são a fonte da
 verdade de cada funcionalidade). Para retomar em outro computador, veja `docs/GUIA-OUTRO-COMPUTADOR.md`.
@@ -59,9 +59,9 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 
 ## 3. Estado atual (2026-11-12)
 
-**Testes: 327, todos passando** (em 2026-11-13, no Linux; 328 no Windows antes da sessão de 2026-11-13). Rodar com `composer test`.
+**Testes: 337, todos passando** (em 2026-11-13, no Linux; 328 no Windows antes da sessão de 2026-11-13). Rodar com `composer test`.
 
-**Git:** tudo **commitado na `main` e enviado ao GitHub** (`9c4cc1f`, 2026-11-13). Diretório de trabalho limpo.
+**Git:** tudo **commitado na `main`** (2026-11-13); o envio ao GitHub (`git push`) é feito pelo usuário (o Claude não tem as credenciais). Diretório de trabalho limpo.
 
 ### 3.1 Sistema (plano `plans/prestacao-de-contas-plan.md`): **concluído**
 
@@ -95,7 +95,8 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 | 2.2 Demais telas (trilha, cartão do PDF, estados vazios, KPIs) | `specs/melhoria-visual-demais-telas.md` + plano | ✔ implementada. Ao ver, o usuário achou que o sistema **ainda tinha "cara antiga"** → fase 3 |
 | **3.1 Novo layout (menu lateral claro) + Municípios** (piloto) | `specs/redesenho-layout-municipios.md` + plano | ✔ aprovada ("ficou perfeito, dessa maneira mesmo que quero seguir"). **É o padrão visual** |
 | **3.2 Lista de Projetos** (cartões em linhas largas) | `specs/redesenho-lista-projetos.md` + plano | ✔ aprovada ("ficou boa") |
-| 3.x Demais telas no estilo da fase 3 | — | ⏸ **pausado** a pedido do usuário (voltou às etapas técnicas). Ver §9 |
+| **3.3 Tela do Projeto** (cabeçalho de identidade, dados em faixa, 25 documentos em linhas largas com ação principal e menu ⋮) | `specs/redesenho-tela-projeto.md` + plano | ✔ implementada em 2026-11-13 (esboços escolhidos pelo usuário; conferência visual dada como aprovada quando ele pediu o commit) |
+| 3.x Demais telas no estilo da fase 3 | — | ▶ **em andamento**, tela por tela. Próximas: formulários → balancete, conciliação e físico-financeiro → junção. Ver §9 |
 
 ---
 
@@ -108,7 +109,11 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 | **Sidebar recolhível** (faixa de ícones, estado no `localStorage`) | `templates/layout.php`, `app.js`, CSS §15 | Sem tooltip na faixa (um `title` quebraria um teste); botão só em tela larga |
 | **Conciliação: receitas independentes do balancete** | `specs/conciliacao-receitas-independentes.md` + plano; migração **008** | Lista livre (tipo + descrição + valor), PDF "Tipo - descrição"; tabela `overrides` e sobrescritas **removidas**; o balancete não invalida mais o doc 15 |
 
-**CSS: 40.915 de 40.960 bytes (folga de 45 bytes).** A próxima mudança visual exige limpar regras antigas ou subir o limite.
+| **CSS dividido por área** (`specs/css-por-area.md` + plano) | `app.css` (base, 31,2 KB) + `projetos.css`, `municipios.css`, `balancete.css`, `guia-visual.css` | Sem mudança visual (42 capturas de estilo computado idênticas, 21 telas × 2 larguras). O `View::render` escolhe o CSS da área pelo nome do template; 5 classes sem uso removidas |
+
+| **Tela do Projeto redesenhada** (`specs/redesenho-tela-projeto.md` + plano) | `templates/projetos/show.php`, `projetos.css`, `app.js` | Tabela vira **lista** (`ul.doc-lista`, `li#doc-XX`); ação principal por linha; Baixar/Substituir/Remover no ⋮ ("Substituir" abre o painel de envio dentro do menu); painel "Enviar arquivo" como popover (no fluxo em tela estreita). O `app.js` ganhou: abrir um menu/painel fecha os outros, clicar fora ou Esc fecha (vale também para os ⋮ de Municípios e do balancete). Regras antigas da tabela saíram da base; `TelaProjetoTest` reescrito |
+
+**CSS:** base com 27.669 bytes (limite do teste: 40 KB), `projetos.css` com 6.984 bytes e 16 KB de limite por arquivo de área; `app.js` com 2 KB (limite 3 KB). Seções do `app.css` compartilhadas por várias telas (cabeçalho `.projeto-cab`, `.cartao-titulo`, `.recolhe*`) ficam na base; só o exclusivo de uma área vai para o arquivo dela.
 O banco real (`storage/database.sqlite`) já recebeu a migração 008 (backup anterior só na pasta de rascunhos da sessão, que é temporária).
 
 ## 4. Linha do tempo resumida
@@ -221,6 +226,13 @@ Se a planilha antiga fechava em zero nesses casos, vale mudar (é uma alteraçã
 - `View::render` passa `$titulo` para o layout (título da aba). Não reutilize essa chave para outra coisa (na relação de
   bens, o título do PDF virou `tituloDocumento`). Lembre também que `+` em arrays do PHP **mantém a chave da esquerda**.
 - **Chaves de array como "11" viram inteiros** no PHP (afetou um teste do catálogo).
+- **Regressão visual sem captura de tela:** para provar que um refactor de CSS não mudou nada, calcule o **hash do estilo computado** de cada
+  elemento (e de `::before`/`::after`) em **iframes de mesma origem** em 2 larguras (1440 e 600 px), antes e depois, via a extensão do Chrome;
+  confirme que a medição é determinística (duas rodadas iguais) e **tem sensibilidade** (remover o CSS da área muda o hash). Isso pegou a perda da
+  regra compartilhada `.cartao-titulo`, que o teste de "classes definidas" não pegou (a classe ainda aparecia num seletor composto).
+- **Ao mover/remover CSS**, compare o conjunto de regras antes × depois (script) e confira o uso das classes por **todas** as telas, não só pela
+  que está sendo redesenhada. Para conferir telas com todos os estados de documento sem tocar nos dados reais, suba um servidor extra
+  (`PRESTACAO_DB`/`PRESTACAO_STORAGE` apontando para cópias, porta 8011).
 - `testNavigationMarksCurrentSection` exige o link do menu como `<a href="…" aria-current="page">Texto</a>`, **só com
   texto**. Por isso os ícones do menu ficam no CSS (`::before` com `mask`).
 
@@ -240,7 +252,8 @@ Se a planilha antiga fechava em zero nesses casos, vale mudar (é uma alteraçã
 
 ```
 public/index.php          ponto de entrada (servidor embutido do PHP)
-public/assets/            app.css (design system, 39,4 KB), app.js, favicon.svg, juncao.js, projeto-form.js, lancamento-form.js
+public/assets/            app.css (base compartilhada, 31 KB) + um CSS por área (projetos, municipios, balancete, guia-visual; carregado
+                          pelo layout conforme o nome do template, ver View::areaCss), app.js, favicon.svg, juncao.js, projeto-form.js, lancamento-form.js
 src/bootstrap.php         monta rotas e dependências (62 rotas)
 src/Core/                 Router, Request, Response (inclui tempFile: apaga depois de enviar), View, Csrf, Session,
                           Database, Migrator, helpers
@@ -278,14 +291,13 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 
 0. ~~Conciliação × balancete~~ **RESOLVIDO em 2026-11-13:** a conciliação ficou totalmente independente do balancete (receitas
    e notas digitadas). Ver §3.3 e `specs/conciliacao-receitas-independentes.md`.
-1. **Retomar o redesenho visual (fase 3)**, tela por tela, no estilo de Municípios (`specs/redesenho-layout-municipios.md`,
-   CSS seções 10 a 12). Sugestão de ordem: tela do Projeto → formulários → balancete, conciliação e físico-financeiro →
-   junção. **Antes da próxima tela, decidir o tamanho do CSS** (39,4 de 40 KB). Recomendado: limpar regras antigas que
-   não são mais usadas (ex.: `.topo`, a barra azul), o que exige ajustar o teste de nomes legados. Alternativa: subir
-   o limite.
+1. **Continuar o redesenho visual (fase 3)**, tela por tela, no estilo de Municípios (`specs/redesenho-layout-municipios.md`).
+   Já feitos: layout e Municípios, lista de Projetos e **tela do Projeto** (2026-11-13). Sugestão de ordem do que falta: formulários →
+   balancete, conciliação e físico-financeiro → junção. O tamanho do CSS já foi resolvido (CSS dividido por área, §3.3): cada tela nova
+   ganha o próprio `<área>.css` (ex.: `conciliacao.css`; o `View::areaCss` o carrega sozinho pelo nome do template). Método que funcionou:
+   uma spec por tela, esboços em texto para o usuário escolher, plano, implementação com servidor de demonstração e conferência.
 2. **Revisar as premissas provisórias** (§6), principalmente as **devoluções fora do total** da conciliação.
 3. Pequenas melhorias anotadas:
-   - o menu ⋮ dos municípios só fecha clicando nele (fechar ao clicar fora exigiria um pouco de JavaScript);
    - o resumo "N documento(s) no ZIP" conta registros, sem conferir o disco.
 4. Usar o sistema com dados reais. Ao iniciar o servidor, a **migração 007** (tabelas da relação de bens) roda sozinha
    no banco real. Ela só cria tabelas.
@@ -304,7 +316,7 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
   contêm os nomes do contador e do prefeito do exemplo da planilha; eles já estavam publicados desde o primeiro commit.
   O trabalho da segunda sessão de 2026-11-12 foi em 2 commits (suporte ao Windows; o resto) mais 2 de documentação,
   feitos num branch, juntados à `main` (fast-forward) e enviados; o branch foi apagado.
-- **Tamanho do CSS:** `app.css` em 40.915 bytes (limite do teste: 40 KB = 40.960; folga de 45 bytes).
+- **Tamanho do CSS:** base em 31.171 bytes (limite do teste: 40 KB) e arquivos de área até 16 KB cada.
 - Os PDFs não são idênticos pixel a pixel à planilha (decisão do usuário: "muito próximo").
 - **Neste computador Windows:**
   - foi preciso rodar `composer install`, porque a pasta `vendor/` não existia;
@@ -331,4 +343,6 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 | `specs/melhoria-visual-tela-projeto.md` · `specs/melhoria-visual-demais-telas.md` (+ planos) | Visual fases 2.1 e 2.2 |
 | `specs/redesenho-layout-municipios.md` · `specs/redesenho-lista-projetos.md` (+ planos) | Visual fase 3 (padrão atual) |
 | `specs/conciliacao-receitas-independentes.md` (+ plano) | Conciliação: receitas digitadas, independentes do balancete (2026-11-13) |
+| `specs/css-por-area.md` (+ plano) | CSS dividido em base + um arquivo por área (2026-11-13) |
+| `specs/redesenho-tela-projeto.md` (+ plano) | Redesenho da tela do Projeto (fase 3.3, 2026-11-13) |
 | `specs/SPEC_TEMPLATE.md`, `plans/PLAN_TEMPLATE.md` | Modelos de documento |
