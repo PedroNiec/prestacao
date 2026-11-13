@@ -6,12 +6,12 @@ namespace App\Domain;
 /**
  * Cálculos da conciliação bancária (doc. 15).
  *
- * Decisões do usuário: receitas vêm do balancete (editáveis); notas fiscais são digitadas;
+ * Decisões do usuário: receitas e notas fiscais são digitadas na própria conciliação (sem ligação com o balancete);
  * "Total de despesas" soma SOMENTE o bruto das notas (devoluções ficam fora do total).
  */
 final class ConciliacaoCalculator
 {
-    public const MIN_SLOTS = 3;   // a planilha sempre mostra 3 repasses e 3 contrapartidas
+    public const TIPOS = ['repasse' => 'Repasse', 'contrapartida' => 'Contrapartida', 'rendimentos' => 'Rendimentos'];
 
     public const DEVOLUCOES = [
         'dev_conc_rend' => 'Devolução Concedente Rendimento de Aplicação',
@@ -21,55 +21,12 @@ final class ConciliacaoCalculator
         'dev_conv_saldo' => 'Devolução Convenente Saldo Remanescente',
     ];
 
-    /**
-     * Receitas calculadas a partir dos lançamentos do balancete.
-     * @param array<int,array<string,mixed>> $lancamentos
-     * @return array<int,array{chave:string,rotulo:string,calculado:int}>
-     */
-    public static function receitasCalculadas(array $lancamentos): array
+    /** Rótulo da receita no PDF: "Tipo - descrição" (só o tipo, se não houver descrição). */
+    public static function rotuloReceita(array $r): string
     {
-        $rep = $cp = [];
-        $rend = 0;
-        foreach ($lancamentos as $l) {
-            if ($l['tipo'] !== 'receita') {
-                continue;
-            }
-            $v = (int) $l['valor_centavos'];
-            match ($l['origem']) {
-                'convenio' => $rep[] = ['id' => (int) $l['id'], 'v' => $v],
-                'contrapartida' => $cp[] = ['id' => (int) $l['id'], 'v' => $v],
-                default => $rend += $v,
-            };
-        }
-        $out = [];
-        foreach ([['rep', 'º Repasse', $rep], ['cp', 'ª Contrapartida', $cp]] as [$pref, $sufixo, $itens]) {
-            $total = max(self::MIN_SLOTS, count($itens));
-            for ($i = 0; $i < $total; $i++) {
-                $item = $itens[$i] ?? null;
-                $out[] = [
-                    'chave' => $item ? "$pref-{$item['id']}" : "$pref-slot-" . ($i + 1),
-                    'rotulo' => ($i + 1) . $sufixo,
-                    'calculado' => $item['v'] ?? 0,
-                ];
-            }
-        }
-        $out[] = ['chave' => 'rend', 'rotulo' => 'Rendimentos Aplicação Financeira', 'calculado' => $rend];
-        return $out;
-    }
-
-    /**
-     * Aplica as sobrescritas do usuário.
-     * @param array<int,array{chave:string,rotulo:string,calculado:int}> $linhas
-     * @param array<string,int> $overrides chave => centavos
-     * @return array<int,array{chave:string,rotulo:string,calculado:int,valor:int,alterado:bool}>
-     */
-    public static function aplicarOverrides(array $linhas, array $overrides): array
-    {
-        return array_map(function (array $l) use ($overrides) {
-            $tem = array_key_exists($l['chave'], $overrides);
-            $valor = $tem ? $overrides[$l['chave']] : $l['calculado'];
-            return $l + ['valor' => $valor, 'alterado' => $tem && $valor !== $l['calculado']];
-        }, $linhas);
+        $tipo = self::TIPOS[$r['tipo']] ?? (string) $r['tipo'];
+        $desc = trim((string) $r['descricao']);
+        return $desc === '' ? $tipo : "$tipo - $desc";
     }
 
     /**

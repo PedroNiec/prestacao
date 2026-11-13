@@ -46,9 +46,17 @@ final class ConciliacaoTest extends TestCase
         return handle(new Request('GET', $path), 'localhost');
     }
 
-    private function receita(string $origem, string $valor, ?int $pid = null): void
+    /** Lança uma receita na própria conciliação ($tipo: repasse, contrapartida ou rendimentos). */
+    private function receita(string $tipo, string $valor, ?int $pid = null, string $descricao = 'Parcela 1'): Response
     {
-        $this->post('/projetos/' . ($pid ?? $this->pid) . '/balancete/lancamentos', ['tipo' => 'receita', 'origem' => $origem, 'descricao' => "Receita $origem", 'valor' => $valor]);
+        return $this->post('/projetos/' . ($pid ?? $this->pid) . '/conciliacao/receitas', ['tipo' => $tipo, 'descricao' => $descricao, 'valor' => $valor]);
+    }
+
+    private function receitas(?int $pid = null): array
+    {
+        $st = Database::connection()->prepare('SELECT * FROM conciliacao_receitas WHERE projeto_id = ? ORDER BY ordem, id');
+        $st->execute([$pid ?? $this->pid]);
+        return $st->fetchAll();
     }
 
     private function nota(array $o = [], ?int $pid = null): Response
@@ -61,13 +69,6 @@ final class ConciliacaoTest extends TestCase
         $st = Database::connection()->prepare('SELECT * FROM conciliacao_notas WHERE projeto_id = ? ORDER BY ordem, id');
         $st->execute([$pid ?? $this->pid]);
         return $st->fetchAll();
-    }
-
-    private function overrides(): array
-    {
-        $st = Database::connection()->prepare('SELECT campo, valor_centavos FROM overrides WHERE projeto_id = ?');
-        $st->execute([$this->pid]);
-        return array_map('intval', $st->fetchAll(\PDO::FETCH_KEY_PAIR));
     }
 
     private function pdfPath(): string
@@ -85,43 +86,23 @@ final class ConciliacaoTest extends TestCase
 
     // ---------- domínio ----------
 
-    public function testReceitasAreFilledToThreeSlotsEachAndKeepOrder(): void
+    public function testRotuloReceitaIsTipoDashDescricao(): void
     {
-        $l = [
-            ['id' => 5, 'tipo' => 'receita', 'origem' => 'convenio', 'valor_centavos' => 1000],
-            ['id' => 6, 'tipo' => 'despesa', 'origem' => 'convenio', 'valor_centavos' => 999],   // ignorada
-            ['id' => 7, 'tipo' => 'receita', 'origem' => 'rendimentos', 'valor_centavos' => 30],
-            ['id' => 8, 'tipo' => 'receita', 'origem' => 'rendimentos', 'valor_centavos' => 20],
-        ];
-        $r = C::receitasCalculadas($l);
-        $this->assertCount(7, $r);
-        $this->assertSame(['1º Repasse', '2º Repasse', '3º Repasse', '1ª Contrapartida', '2ª Contrapartida', '3ª Contrapartida', 'Rendimentos Aplicação Financeira'], array_column($r, 'rotulo'));
-        $this->assertSame([1000, 0, 0, 0, 0, 0, 50], array_column($r, 'calculado'));
-        $this->assertSame('rep-5', $r[0]['chave']);
-        $this->assertSame('rep-slot-2', $r[1]['chave']);
-        $this->assertSame('cp-slot-1', $r[3]['chave']);
-        $this->assertSame('rend', $r[6]['chave']);
+        $this->assertSame('Repasse - Parcela 1 - OB 123', C::rotuloReceita(['tipo' => 'repasse', 'descricao' => 'Parcela 1 - OB 123']));
+        $this->assertSame('Contrapartida', C::rotuloReceita(['tipo' => 'contrapartida', 'descricao' => '  ']));
+        $this->assertSame('Rendimentos - Aplicação', C::rotuloReceita(['tipo' => 'rendimentos', 'descricao' => 'Aplicação']));
     }
 
-    public function testMoreThanThreeRepassesAreAllListed(): void
+    public function testValidatorReceita(): void
     {
-        $l = [];
-        foreach ([1, 2, 3, 4] as $i) {
-            $l[] = ['id' => $i, 'tipo' => 'receita', 'origem' => 'convenio', 'valor_centavos' => $i * 100];
+        $ok = Validator::conciliacaoReceita(['tipo' => 'repasse', 'descricao' => ' Parcela ', 'valor' => '1.234,56']);
+        $this->assertSame([], $ok['erros']);
+        $this->assertSame(['tipo' => 'repasse', 'descricao' => 'Parcela', 'valor_centavos' => 123456], $ok['dados']);
+        $this->assertSame([], Validator::conciliacaoReceita(['tipo' => 'rendimentos', 'valor' => '0,01'])['erros'], 'descrição é opcional');
+        foreach ([['tipo' => 'outro', 'valor' => '1,00'], ['tipo' => '', 'valor' => '1,00'], ['tipo' => 'repasse', 'valor' => ''],
+                  ['tipo' => 'repasse', 'valor' => '0,00'], ['tipo' => 'repasse', 'valor' => 'abc'], ['tipo' => 'repasse', 'valor' => '-5,00']] as $in) {
+            $this->assertNotSame([], Validator::conciliacaoReceita($in)['erros'], json_encode($in));
         }
-        $r = C::receitasCalculadas($l);
-        $this->assertCount(8, $r);
-        $this->assertSame('4º Repasse', $r[3]['rotulo']);
-    }
-
-    public function testOverridesOnlyMarkRealDifferences(): void
-    {
-        $r = C::aplicarOverrides(C::receitasCalculadas([['id' => 1, 'tipo' => 'receita', 'origem' => 'convenio', 'valor_centavos' => 1000]]), ['rep-1' => 1500, 'rep-slot-2' => 0, 'cp-slot-1' => 50]);
-        $this->assertSame(1500, $r[0]['valor']);
-        $this->assertTrue($r[0]['alterado']);
-        $this->assertFalse($r[1]['alterado'], 'override igual ao calculado não conta como alterado');
-        $this->assertTrue($r[3]['alterado']);
-        $this->assertSame(1000, $r[0]['calculado']);
     }
 
     public function testBlocoNotaSomaColumnAccumulatesBackToGross(): void
@@ -223,68 +204,91 @@ final class ConciliacaoTest extends TestCase
         $this->assertCount(1, $this->notas($this->outro));
     }
 
-    // ---------- fluxo: receitas e sobrescritas ----------
+    // ---------- fluxo: receitas digitadas ----------
 
-    public function testReceitasComeFromBalanceteAndShowOnPage(): void
+    public function testReceitasStartEmpty(): void
     {
-        $this->receita('convenio', '497.152,49');
-        $this->receita('contrapartida', '1.000,00');
         $body = $this->get("/projetos/{$this->pid}/conciliacao")->body;
-        $this->assertStringContainsString('1º Repasse', $body);
-        $this->assertStringContainsString('497.152,49', $body);
-        $this->assertStringContainsString('1ª Contrapartida', $body);
-        $this->assertStringNotContainsString('class="tag aviso-tag" title="Diferente do balancete"', $body);
+        $this->assertStringContainsString('Nenhuma receita.', $body);
+        $this->assertStringContainsString('Nova receita', $body);
+        $this->assertStringNotContainsString('balancete', strtolower($body));
+        $this->assertSame([], $this->receitas());
     }
 
-    public function testOverrideIsSavedMarkedAndRestorable(): void
+    public function testReceitaIsCreatedListedAndTotaled(): void
     {
-        $this->receita('convenio', '1.000,00');
-        $key = (string) array_key_first(array_flip(array_column(C::receitasCalculadas(Database::connection()->query('SELECT * FROM lancamentos')->fetchAll()), 'chave')));
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => [$key => '1.200,00', 'rep-slot-2' => '0,00']]);
-        $this->assertSame([$key => 120000], $this->overrides(), '0,00 igual ao calculado não gera sobrescrita');
-        $this->assertStringContainsString('title="Diferente do balancete"', $this->get("/projetos/{$this->pid}/conciliacao")->body);
-
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas/restaurar", ['chave' => $key]);
-        $this->assertSame([], $this->overrides());
+        $this->assertSame(303, $this->receita('repasse', '497.152,49', null, 'Parcela 1 - OB 123')->status);
+        $this->receita('contrapartida', '1.000,00', null, '');
+        $this->receita('rendimentos', '12,34', null, 'Aplicação');
+        $this->receita('repasse', '300,00', null, 'Parcela 2'); // vários do mesmo tipo
+        $this->assertSame(['repasse', 'contrapartida', 'rendimentos', 'repasse'], array_column($this->receitas(), 'tipo'));
+        $body = $this->get("/projetos/{$this->pid}/conciliacao")->body;
+        foreach (['Parcela 1 - OB 123', '497.152,49', 'Contrapartida', 'Aplicação', '498.464,83'] as $e) {
+            $this->assertStringContainsString($e, $body, $e);
+        }
     }
 
-    public function testTypingTheCalculatedValueRemovesOverride(): void
+    public function testReceitaCanBeEditedMovedAndDeleted(): void
     {
-        $this->receita('convenio', '1.000,00');
-        $key = Database::connection()->query('SELECT id FROM lancamentos')->fetchColumn();
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ["rep-$key" => '999,00']]);
-        $this->assertCount(1, $this->overrides());
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ["rep-$key" => '1000,00']]);
-        $this->assertSame([], $this->overrides());
+        $this->receita('repasse', '100,00', null, 'A');
+        $this->receita('contrapartida', '200,00', null, 'B');
+        [$a, $b] = array_map(fn ($r) => (int) $r['id'], $this->receitas());
+        $form = $this->get("/projetos/{$this->pid}/conciliacao/receitas/$a/editar")->body;
+        $this->assertStringContainsString('value="100,00"', $form);
+
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$a", ['tipo' => 'rendimentos', 'descricao' => 'A2', 'valor' => '150,50']);
+        $r = $this->receitas()[0];
+        $this->assertSame(['rendimentos', 'A2', 15050], [$r['tipo'], $r['descricao'], (int) $r['valor_centavos']]);
+
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$b/mover", ['direcao' => 'cima']);
+        $this->assertSame([$b, $a], array_map(fn ($x) => (int) $x['id'], $this->receitas()));
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$b/mover", ['direcao' => 'cima']); // já é o primeiro
+        $this->assertSame([$b, $a], array_map(fn ($x) => (int) $x['id'], $this->receitas()));
+
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$b/excluir");
+        $this->assertSame([$a], array_map(fn ($x) => (int) $x['id'], $this->receitas()));
     }
 
-    public function testManualValueInEmptySlot(): void
+    public function testInvalidReceitaIsNotSaved(): void
     {
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ['rep-slot-2' => '250,00']]);
-        $this->assertSame(['rep-slot-2' => 25000], $this->overrides());
+        foreach ([['outro', '1,00'], ['', '1,00'], ['repasse', ''], ['repasse', '0,00'], ['repasse', 'abc']] as [$tipo, $valor]) {
+            $this->assertSame(303, $this->receita($tipo, $valor)->status);
+            $flash = Session::pullFlash();
+            $this->assertSame('erro', end($flash)['tipo'], "$tipo / $valor");
+        }
+        $this->assertSame([], $this->receitas());
     }
 
-    public function testInvalidOverrideSavesNothing(): void
+    public function testReceitaHtmlIsEscaped(): void
     {
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ['rep-slot-1' => '100,00', 'rep-slot-2' => 'abc']]);
-        $this->assertSame([], $this->overrides());
+        $this->receita('repasse', '1,00', null, '<b>x</b>');
+        $this->assertStringNotContainsString('<b>x</b>', $this->get("/projetos/{$this->pid}/conciliacao")->body);
     }
 
-    public function testUnknownKeysAreIgnoredAndRestoreRejectsThem(): void
+    public function testCannotTouchReceitaOfAnotherProject(): void
     {
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ['hack' => '5,00', "x'; DROP" => '1']]);
-        $this->assertSame([], $this->overrides());
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas/restaurar", ['chave' => 'hack']);
-        $flash = Session::pullFlash();
-        $this->assertSame('erro', end($flash)['tipo']);
+        $this->receita('repasse', '5,00', $this->outro);
+        $id = (int) $this->receitas($this->outro)[0]['id'];
+        $this->assertSame(404, $this->get("/projetos/{$this->pid}/conciliacao/receitas/$id/editar")->status);
+        $this->assertSame(404, $this->post("/projetos/{$this->pid}/conciliacao/receitas/$id", ['tipo' => 'repasse', 'valor' => '9,00'])->status);
+        $this->assertSame(404, $this->post("/projetos/{$this->pid}/conciliacao/receitas/$id/excluir")->status);
+        $this->assertSame(404, $this->get("/projetos/{$this->pid}/conciliacao/receitas/9999/editar")->status);
+        $this->assertSame(500, (int) $this->receitas($this->outro)[0]['valor_centavos']);
+        $this->assertSame([], $this->receitas());
     }
 
-    public function testOverridesAreIsolatedPerProject(): void
+    public function testBalanceteDoesNotFeedTheConciliacao(): void
     {
-        $this->post("/projetos/{$this->outro}/conciliacao/receitas", ['valores' => ['rep-slot-1' => '999,00']]);
-        $this->assertSame([], $this->overrides());
-        $st = Database::connection()->query("SELECT COUNT(*) FROM overrides WHERE projeto_id = {$this->outro}");
-        $this->assertSame(1, (int) $st->fetchColumn());
+        $this->post("/projetos/{$this->pid}/balancete/lancamentos", ['tipo' => 'receita', 'origem' => 'convenio', 'descricao' => 'Transferência', 'valor' => '9.999,00']);
+        $this->post("/projetos/{$this->pid}/balancete/lancamentos", ['tipo' => 'despesa', 'origem' => 'convenio', 'descricao' => 'Pagamento', 'valor' => '1.111,00']);
+        Session::pullFlash(); // mensagens de confirmação do balancete não fazem parte da página da conciliação
+        $body = $this->get("/projetos/{$this->pid}/conciliacao")->body;
+        $this->assertStringContainsString('Nenhuma receita.', $body);
+        $this->assertStringNotContainsString('9.999,00', $body);
+        $this->assertStringNotContainsString('1.111,00', $body);
+        $t = $this->gerarTexto();
+        $this->assertStringContainsString('Nenhuma receita informada.', $t);
+        $this->assertStringNotContainsString('9.999,00', $t);
     }
 
     // ---------- fluxo: dados avulsos ----------
@@ -316,12 +320,12 @@ final class ConciliacaoTest extends TestCase
 
     public function testPdfReproducesSpreadsheetExampleOnOnePage(): void
     {
-        $this->receita('convenio', '497.152,49');
+        $this->receita('repasse', '497.152,49');
         $this->nota();
         $t = $this->gerarTexto();
         $this->assertSame(1, (new PdfMergeService())->countPages($this->pdfPath()));
-        foreach (['MUNICÍPIO DE CAXAMBU DO SUL - SC', 'BALANCETE DE VERIFICAÇÃO - CONCILIAÇÃO BANCÁRIA', 'RECEITAS', '1º Repasse', '3ª Contrapartida',
-                  'Rendimentos Aplicação Financeira', 'TOTAL RECEITAS ( 1.1 até 1.7 )', 'DESPESAS', 'Nota Fiscal nº 2797', 'Nota Fiscal - Valor Líquido',
+        foreach (['MUNICÍPIO DE CAXAMBU DO SUL - SC', 'BALANCETE DE VERIFICAÇÃO - CONCILIAÇÃO BANCÁRIA', 'RECEITAS', 'Repasse - Parcela 1',
+                  'TOTAL RECEITAS ( 1.1 até 1.1 )', 'DESPESAS', 'Nota Fiscal nº 2797', 'Nota Fiscal - Valor Líquido',
                   'IR sobre Nota Fiscal', 'ISS sobre Nota Fiscal', 'INSS sobre Nota Fiscal', 'Devolução Concedente Rendimento de Aplicação',
                   'Devolução Convenente Saldo Remanescente', 'TOTAL DESPESAS (2)', 'SALDO (RECEITAS - DESPESAS)', 'EXTRATO BANCÁRIO',
                   'Saldo Conta Corrente em 05/03/2026', 'Saldo Conta Aplicações/Investimentos em 05/03/2026', 'Saldo em Conta Bancária (4.1 + 4.2)',
@@ -349,7 +353,7 @@ final class ConciliacaoTest extends TestCase
 
     public function testPdfTotalDespesasSumsEveryNota(): void
     {
-        $this->receita('convenio', '10.000,00');
+        $this->receita('repasse', '10.000,00');
         $this->nota(['nota_fiscal' => '1', 'bruto' => '1.000,00', 'ir' => '']);
         $this->nota(['nota_fiscal' => '2', 'bruto' => '2.500,00', 'ir' => '']);
         $this->nota(['nota_fiscal' => '3', 'bruto' => '500,00', 'ir' => '']);
@@ -358,15 +362,13 @@ final class ConciliacaoTest extends TestCase
         $this->assertMatchesRegularExpression('/SALDO \(RECEITAS - DESPESAS\)\s+6\.000,00/', $t);
     }
 
-    public function testPdfShowsOverrideAndBankSection(): void
+    public function testPdfShowsReceitasAndBankSection(): void
     {
-        $this->receita('convenio', '1.000,00');
-        $key = (string) Database::connection()->query('SELECT id FROM lancamentos')->fetchColumn();
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ["rep-$key" => '1.100,00']]);
+        $this->receita('repasse', '1.100,00');
         $this->nota(['nota_fiscal' => '9', 'bruto' => '400,00', 'ir' => '']);
         $this->post("/projetos/{$this->pid}/conciliacao/config", ['saldo_cc' => '600,00', 'saldo_aplic' => '100,00', 'data_saldo' => '2026-04-01', 'extrato_descricao' => 'BANCO X AG 1', 'rotulo_extrato' => 'FINAL - R$', 'titulo' => '3ª PARCELA']);
         $t = $this->gerarTexto();
-        $this->assertMatchesRegularExpression('/1º Repasse\s+1\.100,00\s+1\.100,00/', $t);
+        $this->assertMatchesRegularExpression('/Repasse - Parcela 1\s+1\.100,00\s+1\.100,00/', $t);
         $this->assertStringContainsString('EXTRATO BANCÁRIO - BANCO X AG 1', $t);
         $this->assertStringContainsString('Saldo Conta Corrente em 01/04/2026', $t);
         $this->assertStringContainsString('3ª PARCELA', $t);
@@ -415,7 +417,9 @@ final class ConciliacaoTest extends TestCase
     {
         $t = $this->gerarTexto();
         $this->assertStringContainsString('Nenhuma nota fiscal informada.', $t);
-        $this->assertStringContainsString('1.0', $t);
+        $this->assertStringContainsString('Nenhuma receita informada.', $t);
+        $this->assertStringContainsString('TOTAL RECEITAS', $t);
+        $this->assertStringNotContainsString('1.1 até', $t);
     }
 
     public function testHtmlIsPrintedLiterally(): void
@@ -432,7 +436,7 @@ final class ConciliacaoTest extends TestCase
 
     public function testWarningWhenConciliationDoesNotCloseExplainsDevolucoes(): void
     {
-        $this->receita('convenio', '1.000,00');
+        $this->receita('repasse', '1.000,00');
         $this->nota(['nota_fiscal' => '1', 'bruto' => '300,00', 'ir' => '']);
         $this->post("/projetos/{$this->pid}/conciliacao/config", ['dev_conv_saldo' => '700,00']);
         $body = $this->get("/projetos/{$this->pid}/conciliacao")->body;
@@ -442,7 +446,7 @@ final class ConciliacaoTest extends TestCase
 
     public function testNoWarningWhenItCloses(): void
     {
-        $this->receita('convenio', '1.000,00');
+        $this->receita('repasse', '1.000,00');
         $this->nota(['nota_fiscal' => '1', 'bruto' => '300,00', 'ir' => '']);
         $this->post("/projetos/{$this->pid}/conciliacao/config", ['saldo_cc' => '700,00']);
         $this->assertStringNotContainsString('não fechou', $this->get("/projetos/{$this->pid}/conciliacao")->body);
@@ -461,11 +465,24 @@ final class ConciliacaoTest extends TestCase
         $this->post("/projetos/{$this->pid}/conciliacao/config", ['saldo_cc' => '1,00']);
         $this->assertSame(1, $out());
         $this->gerarTexto();
-        $this->post("/projetos/{$this->pid}/conciliacao/receitas", ['valores' => ['rep-slot-1' => '5,00']]);
+        $this->receita('repasse', '5,00');
         $this->assertSame(1, $out());
         $this->gerarTexto();
-        $this->receita('convenio', '10,00'); // mudança no balancete
-        $this->assertSame(1, $out());
+        $rid = (int) $this->receitas()[0]['id'];
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$rid", ['tipo' => 'repasse', 'valor' => '6,00']);
+        $this->assertSame(1, $out(), 'editar receita');
+        $this->gerarTexto();
+        $this->receita('contrapartida', '1,00');
+        $id2 = (int) $this->receitas()[1]['id'];
+        $this->gerarTexto();
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$id2/mover", ['direcao' => 'cima']);
+        $this->assertSame(1, $out(), 'mover receita');
+        $this->gerarTexto();
+        $this->post("/projetos/{$this->pid}/conciliacao/receitas/$id2/excluir");
+        $this->assertSame(1, $out(), 'excluir receita');
+        $this->gerarTexto();
+        $this->post("/projetos/{$this->pid}/balancete/lancamentos", ['tipo' => 'receita', 'origem' => 'convenio', 'descricao' => 'X', 'valor' => '10,00']); // balancete
+        $this->assertSame(0, $out(), 'mudança no balancete não afeta a conciliação');
     }
 
     public function testProjectPageStatusDownloadAndCascade(): void
@@ -481,7 +498,7 @@ final class ConciliacaoTest extends TestCase
         $pdf = $this->pdfPath();
         $this->post("/projetos/{$this->pid}/excluir");
         $pdo = Database::connection();
-        foreach (['conciliacao_notas', 'conciliacao', 'overrides'] as $t) {
+        foreach (['conciliacao_notas', 'conciliacao_receitas', 'conciliacao'] as $t) {
             $this->assertSame(0, (int) $pdo->query("SELECT COUNT(*) FROM $t WHERE projeto_id = {$this->pid}")->fetchColumn(), $t);
         }
         $this->assertFileDoesNotExist($pdf);
@@ -489,7 +506,7 @@ final class ConciliacaoTest extends TestCase
 
     public function testRequiresCsrf(): void
     {
-        foreach (['/conciliacao/notas', '/conciliacao/config', '/conciliacao/receitas', '/conciliacao/gerar'] as $p) {
+        foreach (['/conciliacao/notas', '/conciliacao/config', '/conciliacao/receitas', '/conciliacao/receitas/1/excluir', '/conciliacao/gerar'] as $p) {
             $this->assertSame(419, handle(new Request('POST', "/projetos/{$this->pid}$p", [], ['x' => 'y']), 'localhost')->status, $p);
         }
     }

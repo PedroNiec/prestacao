@@ -15,10 +15,11 @@ final class BalanceteService
 {
     public const CODIGO = '01';
     /**
-     * Documentos cujos valores dependem dos lançamentos (conciliação e bens).
+     * Documentos cujos valores dependem dos lançamentos (o próprio balancete e a relação de bens).
+     * A conciliação (15) NÃO depende: receitas e notas são digitadas nela (specs/conciliacao-receitas-independentes.md).
      * O físico-financeiro (22) NÃO depende: seus valores são sempre digitados (decisão do usuário).
      */
-    public const DEPENDENTES = ['01', '09', '15'];
+    public const DEPENDENTES = ['01', '09'];
 
     public function __construct(
         private LancamentoRepository $lancamentos,

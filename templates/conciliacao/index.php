@@ -24,7 +24,7 @@ $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money:
 
 <?= View::render("partes/pdf", [
     "final" => $final, "gerar" => $base . "/conciliacao/gerar", "baixar" => $base . "/documentos/15/baixar",
-    "textos" => ["vazio" => "PDF não gerado", "gerado" => "PDF gerado", "desatualizado" => "Os dados (ou o balancete) mudaram desde a última geração."],
+    "textos" => ["vazio" => "PDF não gerado", "gerado" => "PDF gerado", "desatualizado" => "Os dados mudaram desde a última geração."],
 ], false) ?>
 
 <h2 class="so-leitor">Resumo</h2>
@@ -43,38 +43,36 @@ $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money:
     </p>
 <?php endif; ?>
 
-<section class="cartao secao">
-<h2 id="receitas">1. Receitas <small>(calculadas a partir do balancete, editáveis)</small></h2>
-<form method="post" action="<?= e($base) ?>/conciliacao/receitas" class="form-larga">
-    <?= csrf_field() ?>
-    <div class="rolagem"><table>
-        <thead><tr><th>#</th><th>Descrição</th><th class="num">Do balancete</th><th>Valor na conciliação (R$)</th><th></th></tr></thead>
-        <tbody>
-        <?php foreach ($receitas as $i => $r): ?>
-            <tr>
-                <td>1.<?= $i + 1 ?></td>
-                <td><?= e($r['rotulo']) ?></td>
-                <td class="num"><?= $m($r['calculado']) ?></td>
-                <td>
-                    <input name="valores[<?= e($r['chave']) ?>]" inputmode="decimal" value="<?= e(Money::input($r['valor'])) ?>" aria-label="Valor de <?= e($r['rotulo']) ?>">
-                </td>
-                <td>
-                    <?php if ($r['alterado']): ?>
-                        <span class="tag aviso-tag" title="Diferente do balancete">alterado</span>
-                        <button class="link" type="submit" form="restaurar-<?= $i ?>">Restaurar</button>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-        <tfoot><tr><th colspan="3">Total de receitas</th><th class="num"><?= $m($totais['receitas']) ?></th><th></th></tr></tfoot>
-    </table></div>
-    <div class="botoes"><button class="btn" type="submit">Salvar receitas</button></div>
-</form>
+<section class="cartao secao" id="receitas">
+<div class="secao-cab">
+    <h2>1. Receitas</h2>
+    <a class="btn" href="<?= e($base) ?>/conciliacao/receitas/novo">Nova receita</a>
+</div>
+<?php if (!$receitas): ?>
+    <div class="estado-vazio"><strong>Nenhuma receita.</strong> Lance os repasses, a contrapartida e os rendimentos recebidos.</div>
+<?php else: ?>
+<div class="rolagem"><table>
+    <thead><tr><th>#</th><th>Tipo</th><th>Descrição</th><th class="num">Valor</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($receitas as $i => $r): $rid = (int) $r['id']; ?>
+        <tr>
+            <td>1.<?= $i + 1 ?></td>
+            <td><?= e(ConciliacaoCalculator::TIPOS[$r['tipo']] ?? $r['tipo']) ?></td>
+            <td><?= e($r['descricao']) ?></td>
+            <td class="num"><?= $m($r['valor']) ?></td>
+            <td class="acoes">
+                <a href="<?= e($base) ?>/conciliacao/receitas/<?= $rid ?>/editar">Editar</a>
+                <form method="post" action="<?= e($base) ?>/conciliacao/receitas/<?= $rid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="cima"><button class="link" type="submit" aria-label="Mover para cima" <?= $i === 0 ? 'disabled' : '' ?>>↑</button></form>
+                <form method="post" action="<?= e($base) ?>/conciliacao/receitas/<?= $rid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="baixo"><button class="link" type="submit" aria-label="Mover para baixo" <?= $i === count($receitas) - 1 ? 'disabled' : '' ?>>↓</button></form>
+                <form method="post" action="<?= e($base) ?>/conciliacao/receitas/<?= $rid ?>/excluir" onsubmit="return confirm('Excluir esta receita?')"><?= csrf_field() ?><button class="link perigo" type="submit">Excluir</button></form>
+            </td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+    <tfoot><tr><th colspan="3">Total de receitas</th><th class="num"><?= $m($totais['receitas']) ?></th><th></th></tr></tfoot>
+</table></div>
+<?php endif; ?>
 </section>
-<?php foreach ($receitas as $i => $r): if ($r['alterado']): ?>
-    <form method="post" id="restaurar-<?= $i ?>" action="<?= e($base) ?>/conciliacao/receitas/restaurar"><?= csrf_field() ?><input type="hidden" name="chave" value="<?= e($r['chave']) ?>"></form>
-<?php endif; endforeach; ?>
 
 <section class="cartao secao" id="notas">
 <div class="secao-cab">

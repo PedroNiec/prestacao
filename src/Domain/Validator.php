@@ -230,6 +230,23 @@ final class Validator
         return ['dados' => $d, 'erros' => $erros];
     }
 
+    /** @return array{dados:array<string,mixed>,erros:string[]} Receita digitada na conciliação (tipo, descrição opcional, valor > 0). */
+    public static function conciliacaoReceita(array $in): array
+    {
+        $d = ['tipo' => self::txt($in, 'tipo', 20), 'descricao' => self::txt($in, 'descricao', 200), 'valor_centavos' => 0];
+        $erros = [];
+        if (!array_key_exists($d['tipo'], ConciliacaoCalculator::TIPOS)) {
+            $erros[] = 'Escolha o tipo da receita (Repasse, Contrapartida ou Rendimentos).';
+        }
+        $v = Money::parse(trim((string) ($in['valor'] ?? '')));
+        if ($v === null || $v <= 0) {
+            $erros[] = 'Informe o valor da receita (maior que zero, ex.: 1.234,56).';
+        } else {
+            $d['valor_centavos'] = $v;
+        }
+        return ['dados' => $d, 'erros' => $erros];
+    }
+
     /** @return array{dados:array<string,mixed>,erros:string[]} Dados avulsos da conciliação (textos, devoluções, extrato). */
     public static function conciliacaoConfig(array $in): array
     {

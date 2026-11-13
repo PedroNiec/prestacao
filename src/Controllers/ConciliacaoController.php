@@ -40,31 +40,77 @@ final class ConciliacaoController
         ]));
     }
 
-    public function salvarReceitas(Request $r, string $id): Response
+    public function receitaNova(Request $r, string $id): Response
     {
         if (($e = $this->validar($id)) !== null) {
             return $e;
         }
-        $valores = $r->post['valores'] ?? [];
-        $erros = $this->service->salvarReceitas((int) $id, is_array($valores) ? $valores : []);
-        if ($erros) {
-            foreach ($erros as $m) {
-                Session::flash($m, 'erro');
-            }
-        } else {
-            Session::flash('Receitas salvas.');
+        return $this->formReceita('Nova receita', $id, Session::old() ?: [], "/projetos/$id/conciliacao/receitas", false);
+    }
+
+    public function receitaCriar(Request $r, string $id): Response
+    {
+        if (($e = $this->validar($id)) !== null) {
+            return $e;
         }
+        $v = Validator::conciliacaoReceita($r->post);
+        if ($v['erros']) {
+            return $this->voltar("/projetos/$id/conciliacao/receitas/novo", $v['erros'], $r->post);
+        }
+        $this->service->criarReceita((int) $id, $v['dados']);
+        Session::flash('Receita adicionada.');
         return Response::redirect("/projetos/$id/conciliacao#receitas");
     }
 
-    public function restaurar(Request $r, string $id): Response
+    public function receitaEditar(Request $r, string $id, string $rid): Response
     {
         if (($e = $this->validar($id)) !== null) {
             return $e;
         }
-        $this->service->restaurar((int) $id, (string) ($r->post['chave'] ?? ''))
-            ? Session::flash('Valor restaurado para o calculado a partir do balancete.')
-            : Session::flash('Linha não encontrada.', 'erro');
+        $x = $this->repo->receita((int) $id, (int) $rid);
+        if ($x === null) {
+            return $this->erro('Receita não encontrada.');
+        }
+        $dados = Session::old() ?: ['tipo' => $x['tipo'], 'descricao' => $x['descricao'], 'valor' => Money::input((int) $x['valor_centavos'])];
+        return $this->formReceita('Editar receita', $id, $dados, "/projetos/$id/conciliacao/receitas/$rid", true);
+    }
+
+    public function receitaAtualizar(Request $r, string $id, string $rid): Response
+    {
+        if (($e = $this->validar($id)) !== null) {
+            return $e;
+        }
+        if ($this->repo->receita((int) $id, (int) $rid) === null) {
+            return $this->erro('Receita não encontrada.');
+        }
+        $v = Validator::conciliacaoReceita($r->post);
+        if ($v['erros']) {
+            return $this->voltar("/projetos/$id/conciliacao/receitas/$rid/editar", $v['erros'], $r->post);
+        }
+        $this->service->atualizarReceita((int) $id, (int) $rid, $v['dados']);
+        Session::flash('Receita atualizada.');
+        return Response::redirect("/projetos/$id/conciliacao#receitas");
+    }
+
+    public function receitaExcluir(Request $r, string $id, string $rid): Response
+    {
+        if (($e = $this->validar($id)) !== null) {
+            return $e;
+        }
+        if ($this->repo->receita((int) $id, (int) $rid) === null) {
+            return $this->erro('Receita não encontrada.');
+        }
+        $this->service->excluirReceita((int) $id, (int) $rid);
+        Session::flash('Receita excluída.');
+        return Response::redirect("/projetos/$id/conciliacao#receitas");
+    }
+
+    public function receitaMover(Request $r, string $id, string $rid): Response
+    {
+        if (($e = $this->validar($id)) !== null) {
+            return $e;
+        }
+        $this->service->moverReceita((int) $id, (int) $rid, ($r->post['direcao'] ?? '') === 'cima' ? -1 : 1);
         return Response::redirect("/projetos/$id/conciliacao#receitas");
     }
 
@@ -183,6 +229,13 @@ final class ConciliacaoController
     {
         return Response::html(View::render('conciliacao/nota_form', [
             'titulo' => $titulo, 'projeto' => $this->projetos->find((int) $id), 'n' => $dados, 'action' => $action, 'edicao' => $edicao,
+        ]));
+    }
+
+    private function formReceita(string $titulo, string $id, array $dados, string $action, bool $edicao): Response
+    {
+        return Response::html(View::render('conciliacao/receita_form', [
+            'titulo' => $titulo, 'projeto' => $this->projetos->find((int) $id), 'r' => $dados, 'action' => $action, 'edicao' => $edicao,
         ]));
     }
 

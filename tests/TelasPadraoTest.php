@@ -39,6 +39,12 @@ final class TelasPadraoTest extends TestCase
             ->execute([$this->pid, $centavos]);
     }
 
+    private function receitaConciliacao(int $centavos): void
+    {
+        Database::connection()->prepare("INSERT INTO conciliacao_receitas (projeto_id, ordem, tipo, descricao, valor_centavos) VALUES (?, 1, 'repasse', '', ?)")
+            ->execute([$this->pid, $centavos]);
+    }
+
     /** Cria um lançamento e devolve o id (a página de lançamento agora é só de edição; specs/balancete-lancamento-na-tela.md). */
     private function lancamento(): int
     {
@@ -165,7 +171,7 @@ final class TelasPadraoTest extends TestCase
         $this->assertStringContainsString('<span class="kpi-nota">Fechou</span>', $html);
         $this->assertStringNotContainsString('class="aviso"', $html);
 
-        $this->receita(50000);
+        $this->receitaConciliacao(50000);
         $html = $this->get("/projetos/{$this->pid}/conciliacao")->body;
         $this->assertStringContainsString('<div class="kpi erro">', $html);
         $this->assertStringContainsString('<span class="kpi-nota">Não fechou</span>', $html);

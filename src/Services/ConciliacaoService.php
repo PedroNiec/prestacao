@@ -6,25 +6,19 @@ namespace App\Services;
 use App\Catalog\DocumentCatalog;
 use App\Core\View;
 use App\Domain\ConciliacaoCalculator;
-use App\Domain\Money;
 use App\Repositories\ConciliacaoRepository;
 use App\Repositories\DocumentoRepository;
-use App\Repositories\LancamentoRepository;
-use App\Repositories\OverrideRepository;
 use App\Repositories\ProjetoRepository;
 
 /** Regras da conciliação bancária (doc. 15). */
 final class ConciliacaoService
 {
     public const CODIGO = '15';
-    public const RELATORIO = 'conciliacao';
     public const TITULO_PADRAO = 'PRESTAÇÃO DE CONTAS FINAL - ENCERRAMENTO DE CONVÊNIO';
     public const ROTULO_PADRAO = 'VALOR - R$';
 
     public function __construct(
         private ConciliacaoRepository $repo,
-        private OverrideRepository $overrides,
-        private LancamentoRepository $lancamentos,
         private DocumentoRepository $documentos,
         private ProjetoRepository $projetos,
         private FileStorage $storage,
@@ -36,8 +30,10 @@ final class ConciliacaoService
     public function dados(int $projetoId): array
     {
         $projeto = $this->projetos->find($projetoId) ?? throw new \RuntimeException('Projeto não encontrado.');
-        $calculadas = ConciliacaoCalculator::receitasCalculadas($this->lancamentos->list($projetoId));
-        $receitas = ConciliacaoCalculator::aplicarOverrides($calculadas, $this->overrides->all($projetoId, self::RELATORIO));
+        $receitas = array_map(
+            fn ($r) => $r + ['rotulo' => ConciliacaoCalculator::rotuloReceita($r), 'valor' => (int) $r['valor_centavos']],
+            $this->repo->receitas($projetoId)
+        );
         $notas = $this->repo->notas($projetoId);
         $config = $this->config($projetoId, $projeto);
         return [
@@ -64,53 +60,30 @@ final class ConciliacaoService
         ];
     }
 
-    /**
-     * Salva as receitas digitadas: valor igual ao calculado remove a sobrescrita; diferente grava.
-     * @param array<string,string> $valores chave => texto digitado
-     * @return string[] erros
-     */
-    public function salvarReceitas(int $projetoId, array $valores): array
+    public function criarReceita(int $projetoId, array $d): int
     {
-        $linhas = ConciliacaoCalculator::receitasCalculadas($this->lancamentos->list($projetoId));
-        $erros = [];
-        $novos = [];
-        foreach ($linhas as $l) {
-            if (!array_key_exists($l['chave'], $valores)) {
-                continue;
-            }
-            $raw = trim((string) $valores[$l['chave']]);
-            $v = $raw === '' ? $l['calculado'] : Money::parse($raw);
-            if ($v === null) {
-                $erros[] = "Valor inválido em «{$l['rotulo']}» (use números positivos, ex.: 1.234,56).";
-                continue;
-            }
-            $novos[$l['chave']] = $v;
-        }
-        if ($erros) {
-            return $erros;
-        }
-        foreach ($linhas as $l) {
-            if (!isset($novos[$l['chave']])) {
-                continue;
-            }
-            $novos[$l['chave']] === $l['calculado']
-                ? $this->overrides->delete($projetoId, self::RELATORIO, $l['chave'])
-                : $this->overrides->set($projetoId, self::RELATORIO, $l['chave'], $novos[$l['chave']]);
-        }
-        $this->overrides->pruneExcept($projetoId, self::RELATORIO, array_column($linhas, 'chave'));
+        $id = $this->repo->createReceita($projetoId, $d);
         $this->invalidar($projetoId);
-        return [];
+        return $id;
     }
 
-    public function restaurar(int $projetoId, string $chave): bool
+    public function atualizarReceita(int $projetoId, int $id, array $d): void
     {
-        $validas = array_column(ConciliacaoCalculator::receitasCalculadas($this->lancamentos->list($projetoId)), 'chave');
-        if (!in_array($chave, $validas, true)) {
-            return false;
-        }
-        $this->overrides->delete($projetoId, self::RELATORIO, $chave);
+        $this->repo->updateReceita($projetoId, $id, $d);
         $this->invalidar($projetoId);
-        return true;
+    }
+
+    public function excluirReceita(int $projetoId, int $id): void
+    {
+        $this->repo->deleteReceita($projetoId, $id);
+        $this->invalidar($projetoId);
+    }
+
+    public function moverReceita(int $projetoId, int $id, int $direcao): void
+    {
+        if ($this->repo->moveReceita($projetoId, $id, $direcao)) {
+            $this->invalidar($projetoId);
+        }
     }
 
     public function salvarConfig(int $projetoId, array $dados): void

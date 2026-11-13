@@ -317,7 +317,7 @@ final class DesignSystemTest extends TestCase
         $esperado = [
             'balancete.php' => '859125ca38e3d2ad9a66a9b9658c305b413d3cc5d67a6bd4d5aa6004570b26f5',
             '_cabecalho.php' => 'de4faebed6341171e57d6d284c753743fd8433697b254957083d37026844331a',
-            'conciliacao.php' => 'cca7438def0d566785714a71d62aa9f154d6fc66d19e4190793912055a25ddce',
+            'conciliacao.php' => 'bc46cdde35722b533b2bb323e42ec1900b30e2beb3b730ada5d527d6e879fa68',
             '_estilo.php' => 'bc97713000c708d9f040bc83ab0dcbbee81a2bdd27727741997181d832619b16',
             'fisico_financeiro.php' => 'df5d5e459206ddfaf55690ce6c12cf54314fd2003f9df4e93dcdc625875e4ead',
             '_rodape.php' => 'f3e1aae26ef526952e7367a81a2bbc4c2bd851d776d0513219cb40298523b9ea',

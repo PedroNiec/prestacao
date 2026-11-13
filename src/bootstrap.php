@@ -24,7 +24,6 @@ use App\Repositories\BensRepository;
 use App\Repositories\FisicoFinanceiroRepository;
 use App\Repositories\LancamentoRepository;
 use App\Repositories\MunicipioRepository;
-use App\Repositories\OverrideRepository;
 use App\Repositories\ProjetoRepository;
 use App\Services\BalanceteService;
 use App\Services\ConciliacaoService;
@@ -81,7 +80,7 @@ function build_router(): Router
     $concRepo = new ConciliacaoRepository($pdo);
     $conciliacao = new ConciliacaoController(
         new ProjetoRepository($pdo), $concRepo, new DocumentoRepository($pdo),
-        new ConciliacaoService($concRepo, new OverrideRepository($pdo), $lancRepo, new DocumentoRepository($pdo), new ProjetoRepository($pdo), $storage, new ReportPdfService()),
+        new ConciliacaoService($concRepo, new DocumentoRepository($pdo), new ProjetoRepository($pdo), $storage, new ReportPdfService()),
     );
     $bensRepo = new BensRepository($pdo);
     $bens = new BensController(
@@ -158,8 +157,12 @@ function build_router(): Router
     $c = '/projetos/{id}/conciliacao';
     $router->get($c, $conciliacao->index(...));
     $router->post("$c/gerar", $conciliacao->gerar(...));
-    $router->post("$c/receitas", $conciliacao->salvarReceitas(...));
-    $router->post("$c/receitas/restaurar", $conciliacao->restaurar(...));
+    $router->get("$c/receitas/novo", $conciliacao->receitaNova(...));
+    $router->post("$c/receitas", $conciliacao->receitaCriar(...));
+    $router->get("$c/receitas/{rid}/editar", $conciliacao->receitaEditar(...));
+    $router->post("$c/receitas/{rid}", $conciliacao->receitaAtualizar(...));
+    $router->post("$c/receitas/{rid}/excluir", $conciliacao->receitaExcluir(...));
+    $router->post("$c/receitas/{rid}/mover", $conciliacao->receitaMover(...));
     $router->post("$c/config", $conciliacao->salvarConfig(...));
     $router->get("$c/notas/novo", $conciliacao->notaNova(...));
     $router->post("$c/notas", $conciliacao->notaCriar(...));

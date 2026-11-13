@@ -45,7 +45,8 @@ $tituloLinha2 = $config['titulo'] !== '' ? $config['titulo'] : '';
         <?php $soma = 0; foreach ($receitas as $i => $r): $soma += $r['valor']; ?>
         <tr><td>1.<?= $i + 1 ?></td><td><?= e($r['rotulo']) ?></td><td class="n"><?= $m($r['valor']) ?></td><td class="n"><?= $m($soma) ?></td></tr>
         <?php endforeach; ?>
-        <tr class="cinza neg"><td>1.0</td><td>TOTAL RECEITAS ( 1.1 até 1.<?= count($receitas) ?> )</td><td class="n"><?= $m($totais['receitas']) ?></td><td class="n"><?= $m($totais['receitas']) ?></td></tr>
+        <?php if (!$receitas): ?><tr><td></td><td colspan="3" class="vazio">Nenhuma receita informada.</td></tr><?php endif; ?>
+        <tr class="cinza neg"><td>1.0</td><td>TOTAL RECEITAS<?= $receitas ? ' ( 1.1 até 1.' . count($receitas) . ' )' : '' ?></td><td class="n"><?= $m($totais['receitas']) ?></td><td class="n"><?= $m($totais['receitas']) ?></td></tr>
         <tr class="esp"><td colspan="4"></td></tr>
 
         <tr class="neg"><td>2.0</td><td style="text-align:center">DESPESAS</td><td style="text-align:center">VALOR - R$</td><td style="text-align:center">SOMA - R$</td></tr>

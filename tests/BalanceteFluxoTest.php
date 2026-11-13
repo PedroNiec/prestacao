@@ -242,7 +242,7 @@ final class BalanceteFluxoTest extends TestCase
         $this->assertSame([], $desat());
 
         $this->lanc(['descricao' => 'Novo']);
-        $this->assertSame(['01', '09', '15'], $desat(), 'o 22 (digitado) e o 18 (upload) não são afetados');
+        $this->assertSame(['01', '09'], $desat(), 'a conciliação (15), o 22 (digitado) e o 18 (upload) não são afetados');
     }
 
     public function testRegeneratingReplacesOldPdfFile(): void

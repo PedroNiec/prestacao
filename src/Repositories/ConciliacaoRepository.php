@@ -8,6 +8,7 @@ use PDO;
 final class ConciliacaoRepository
 {
     public const NOTA_CAMPOS = ['nota_fiscal', 'bruto_centavos', 'ir_centavos', 'iss_centavos', 'inss_centavos', 'outros_centavos'];
+    public const RECEITA_CAMPOS = ['tipo', 'descricao', 'valor_centavos'];
     public const CONFIG_CAMPOS = [
         'titulo', 'rotulo_extrato', 'extrato_descricao', 'data_saldo', 'saldo_cc', 'saldo_aplic',
         'dev_conc_rend', 'dev_conc_indevido', 'dev_conc_tarifas', 'dev_conv_rend', 'dev_conv_saldo',
@@ -37,6 +38,72 @@ final class ConciliacaoRepository
             $params[$c] = $d[$c];
         }
         $st->execute($params);
+    }
+
+    // ---- Receitas (digitadas na conciliação) ----
+
+    /** @return array<int,array<string,mixed>> */
+    public function receitas(int $projetoId): array
+    {
+        $st = $this->pdo->prepare('SELECT * FROM conciliacao_receitas WHERE projeto_id = ? ORDER BY ordem, id');
+        $st->execute([$projetoId]);
+        return $st->fetchAll();
+    }
+
+    public function receita(int $projetoId, int $id): ?array
+    {
+        $st = $this->pdo->prepare('SELECT * FROM conciliacao_receitas WHERE id = ? AND projeto_id = ?');
+        $st->execute([$id, $projetoId]);
+        return $st->fetch() ?: null;
+    }
+
+    public function createReceita(int $projetoId, array $d): int
+    {
+        $st = $this->pdo->prepare(
+            'INSERT INTO conciliacao_receitas (projeto_id, ordem, tipo, descricao, valor_centavos)
+             VALUES (:projeto_id, (SELECT COALESCE(MAX(ordem), 0) + 1 FROM conciliacao_receitas WHERE projeto_id = :p2), :tipo, :descricao, :valor_centavos)'
+        );
+        $st->execute(['projeto_id' => $projetoId, 'p2' => $projetoId] + $this->bindReceita($d));
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function updateReceita(int $projetoId, int $id, array $d): void
+    {
+        $st = $this->pdo->prepare('UPDATE conciliacao_receitas SET tipo = :tipo, descricao = :descricao, valor_centavos = :valor_centavos WHERE id = :id AND projeto_id = :projeto_id');
+        $st->execute($this->bindReceita($d) + ['id' => $id, 'projeto_id' => $projetoId]);
+    }
+
+    public function deleteReceita(int $projetoId, int $id): void
+    {
+        $this->pdo->prepare('DELETE FROM conciliacao_receitas WHERE id = ? AND projeto_id = ?')->execute([$id, $projetoId]);
+    }
+
+    public function moveReceita(int $projetoId, int $id, int $direcao): bool
+    {
+        $ids = array_map(fn ($r) => (int) $r['id'], $this->receitas($projetoId));
+        $i = array_search($id, $ids, true);
+        $j = $i === false ? -1 : $i + ($direcao < 0 ? -1 : 1);
+        if ($i === false || $j < 0 || $j >= count($ids)) {
+            return false;
+        }
+        [$ids[$i], $ids[$j]] = [$ids[$j], $ids[$i]];
+        $st = $this->pdo->prepare('UPDATE conciliacao_receitas SET ordem = ? WHERE id = ? AND projeto_id = ?');
+        $this->pdo->beginTransaction();
+        try {
+            foreach ($ids as $pos => $rid) {
+                $st->execute([$pos + 1, $rid, $projetoId]);
+            }
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+        return true;
+    }
+
+    private function bindReceita(array $d): array
+    {
+        return ['tipo' => $d['tipo'], 'descricao' => $d['descricao'], 'valor_centavos' => $d['valor_centavos']];
     }
 
     // ---- Notas fiscais ----
