@@ -30,9 +30,19 @@ $contador = $valor($projeto['contador_nome']) . ($projeto['contador_crc'] !== ''
 </nav>
 
 <div class="barra projeto-cab">
-    <div class="projeto-titulo">
-        <h1><?= trim($projeto['objeto']) !== '' ? e($projeto['objeto']) : 'Projeto #' . $pid ?></h1>
-        <p class="projeto-sub"><?= e($projeto['municipio_nome']) ?> - <?= e($projeto['municipio_uf']) ?> · Projeto #<?= $pid ?></p>
+    <div class="projeto-ident">
+        <span class="icone-pasta" aria-hidden="true"></span>
+        <div class="projeto-titulo">
+            <h1><?= trim($projeto['objeto']) !== '' ? e($projeto['objeto']) : 'Projeto #' . $pid ?></h1>
+            <p class="projeto-sub"><?= e($projeto['municipio_nome']) ?> - <?= e($projeto['municipio_uf']) ?> · Projeto #<?= $pid ?></p>
+            <p class="dica projeto-zip">
+            <?php if ($zip['comPdf'] === 0): ?>
+                Nenhum documento com PDF ainda: o ZIP fica disponível quando houver pelo menos um.
+            <?php else: ?>
+                <?= $zip['comPdf'] ?> documento(s) no ZIP<?php if ($zip['desatualizados']): ?> · <span class="tag aviso-tag"><?= count($zip['desatualizados']) ?> desatualizado(s)</span> (<?= e(implode(', ', $zip['desatualizados'])) ?>)<?php endif; ?><?php if ($zip['naoGerados']): ?> · <span class="tag aviso-tag"><?= count($zip['naoGerados']) ?> não gerado(s)</span> (<?= e(implode(', ', $zip['naoGerados'])) ?>)<?php endif; ?>
+            <?php endif; ?>
+            </p>
+        </div>
     </div>
     <div class="acoes">
         <a class="btn secundario" href="/projetos/<?= $pid ?>/editar">Editar dados</a>
@@ -43,19 +53,12 @@ $contador = $valor($projeto['contador_nome']) . ($projeto['contador_crc'] !== ''
         <?php endif; ?>
     </div>
 </div>
-<p class="dica">
-<?php if ($zip['comPdf'] === 0): ?>
-    Nenhum documento com PDF ainda: o ZIP fica disponível quando houver pelo menos um.
-<?php else: ?>
-    <?= $zip['comPdf'] ?> documento(s) no ZIP<?php if ($zip['desatualizados']): ?> · <span class="tag aviso-tag"><?= count($zip['desatualizados']) ?> desatualizado(s)</span> (<?= e(implode(', ', $zip['desatualizados'])) ?>)<?php endif; ?><?php if ($zip['naoGerados']): ?> · <span class="tag aviso-tag"><?= count($zip['naoGerados']) ?> não gerado(s)</span> (<?= e(implode(', ', $zip['naoGerados'])) ?>)<?php endif; ?>
-<?php endif; ?>
-</p>
 
 <section class="cartao projeto-dados" aria-labelledby="dados-titulo">
-    <h2 id="dados-titulo" class="cartao-titulo">Dados do projeto</h2>
-    <dl class="dados-grade">
-        <div class="dado-largo"><dt>Concedente</dt><dd><?= $valor($projeto['concedente']) ?></dd></div>
-        <div class="dado-largo"><dt>Processo</dt><dd><?= $valor($projeto['processo']) ?></dd></div>
+    <h2 id="dados-titulo" class="so-leitor">Dados do projeto</h2>
+    <dl class="dados-faixa">
+        <div><dt>Concedente</dt><dd><?= $valor($projeto['concedente']) ?></dd></div>
+        <div><dt>Processo</dt><dd><?= $valor($projeto['processo']) ?></dd></div>
         <div><dt>PP</dt><dd><?= $valor($projeto['nr_pp']) ?></dd></div>
         <div><dt>NE</dt><dd><?= $valor($projeto['nr_ne']) ?></dd></div>
         <div><dt>NL</dt><dd><?= $valor($projeto['nr_nl']) ?></dd></div>
@@ -65,35 +68,9 @@ $contador = $valor($projeto['contador_nome']) . ($projeto['contador_crc'] !== ''
     </dl>
 </section>
 
-<section aria-labelledby="docs-titulo">
-    <h2 id="docs-titulo">Documentos da prestação de contas</h2>
-    <p class="dica">Nenhum documento é obrigatório.</p>
-    <div class="rolagem">
-    <table class="docs" role="table">
-        <thead role="rowgroup">
-            <tr role="row">
-                <th role="columnheader" scope="col" class="docs-num">Nº</th>
-                <th role="columnheader" scope="col">Documento</th>
-                <th role="columnheader" scope="col">Situação</th>
-                <th role="columnheader" scope="col">Ações</th>
-            </tr>
-        </thead>
-        <tbody role="rowgroup">
-<?php /* laço sem indentação: os espaços se repetiriam nas 25 linhas do HTML gerado */ ?>
-<?php foreach ($linhas as $l): $u = $l['urls']; ?>
-<tr id="doc-<?= e($l['codigo']) ?>" role="row" class="doc-linha<?= $l['desatualizado'] ? ' doc-pendente' : '' ?>">
-<td role="cell" class="docs-num"><?= e($l['codigo']) ?></td>
-<td role="cell"><span class="doc-nome"><?= e($l['nome']) ?></span> <small class="doc-tipo"><?= e($l['tipo']) ?></small></td>
-<td role="cell" class="docs-situacao" data-rotulo="Situação"><span class="tag <?= e($l['situacao']['classe']) ?>"><?= e($l['situacao']['texto']) ?></span>
-<?php if ($l['detalhe'] !== null): ?><small class="arq"><?= e($l['detalhe']) ?></small><?php endif; ?></td>
-<td role="cell" class="docs-acoes"><div class="acoes">
-<?php if ($l['acao'] === L::ACAO_UPLOAD): ?>
-<?php if ($l['temArquivo']): ?>
-<a href="<?= e($u['ver']) ?>" target="_blank" rel="noopener">Ver</a>
-<a href="<?= e($u['baixar']) ?>">Baixar</a>
-<?php endif; ?>
-<details class="recolhe">
-<summary class="btn secundario pequeno"><?= $l['temArquivo'] ? 'Substituir' : 'Enviar arquivo' ?></summary>
+<?php
+/** Painel de envio (substituir ou enviar): mesmo formulário e contrato de antes; só aparece quando o <details> é aberto. */
+$painelEnvio = function (array $l, array $u): void { ?>
 <div class="recolhe-painel">
 <form method="post" action="<?= e($u['enviar']) ?>" enctype="multipart/form-data" class="envio">
 <?= csrf_field() ?>
@@ -102,26 +79,60 @@ $contador = $valor($projeto['contador_nome']) . ($projeto['contador_crc'] !== ''
 </form>
 <?php if ($l['envio']['dicaConversao'] !== null): ?><small class="breve"><?= e($l['envio']['dicaConversao']) ?></small><?php endif; ?>
 </div>
+<?php };
+?>
+<section aria-labelledby="docs-titulo">
+    <h2 id="docs-titulo">Documentos da prestação de contas</h2>
+    <p class="dica">Nenhum documento é obrigatório.</p>
+    <ul class="doc-lista">
+<?php /* laço sem indentação: os espaços se repetiriam nas 25 linhas do HTML gerado */ ?>
+<?php foreach ($linhas as $l): $u = $l['urls']; $rotuloMenu = 'Mais ações para o documento ' . $l['codigo'] . ' — ' . $l['nome']; ?>
+<li id="doc-<?= e($l['codigo']) ?>" class="doc-item<?= $l['desatualizado'] ? ' doc-pendente' : '' ?>">
+<span class="doc-num"><?= e($l['codigo']) ?></span>
+<div class="doc-corpo"><span class="doc-nome"><?= e($l['nome']) ?></span> <small class="doc-tipo"><?= e($l['tipo']) ?></small></div>
+<div class="doc-situacao"><span class="tag <?= e($l['situacao']['classe']) ?>"><?= e($l['situacao']['texto']) ?></span>
+<?php if ($l['detalhe'] !== null): ?><small class="arq"><?= e($l['detalhe']) ?></small><?php endif; ?></div>
+<div class="doc-acoes">
+<?php if ($l['acao'] === L::ACAO_UPLOAD && !$l['temArquivo']): ?>
+<details class="recolhe doc-envio">
+<summary class="btn secundario pequeno">Enviar arquivo</summary>
+<?php $painelEnvio($l, $u); ?>
 </details>
-<?php if ($l['temArquivo']): ?>
+<?php elseif ($l['acao'] === L::ACAO_UPLOAD): ?>
+<a class="btn secundario pequeno" href="<?= e($u['ver']) ?>" target="_blank" rel="noopener">Ver</a>
+<details class="menu-mais">
+<summary aria-label="<?= e($rotuloMenu) ?>">⋮</summary>
+<div class="menu-mais-painel">
+<a href="<?= e($u['baixar']) ?>">Baixar</a>
+<details class="recolhe">
+<summary class="menu-item">Substituir</summary>
+<?php $painelEnvio($l, $u); ?>
+</details>
 <form method="post" action="<?= e($u['remover']) ?>" onsubmit="return confirm('Remover este arquivo?')">
 <?= csrf_field() ?>
 <button class="link perigo" type="submit">Remover</button>
 </form>
-<?php endif; ?>
-<?php elseif ($l['acao'] === L::ACAO_FORMULARIO): ?>
+</div>
+</details>
+<?php elseif ($l['acao'] === L::ACAO_FORMULARIO || $l['acao'] === L::ACAO_JUNCAO): ?>
+<?php if ($l['acao'] === L::ACAO_FORMULARIO): ?>
 <a class="btn secundario pequeno" href="<?= e($l['formulario']['url']) ?>"><?= e($l['formulario']['rotulo']) ?></a>
-<?php if ($l['temArquivo']): ?><a href="<?= e($u['baixar']) ?>">Baixar</a><?php endif; ?>
-<?php elseif ($l['acao'] === L::ACAO_JUNCAO): ?>
+<?php else: ?>
 <a class="btn secundario pequeno" href="<?= e($u['base']) ?>">Gerenciar arquivos</a>
-<?php if ($l['temArquivo']): ?><a href="<?= e($u['baixar']) ?>">Baixar</a><?php endif; ?>
 <?php endif; ?>
-</div></td>
-</tr>
+<?php if ($l['temArquivo']): ?>
+<details class="menu-mais">
+<summary aria-label="<?= e($rotuloMenu) ?>">⋮</summary>
+<div class="menu-mais-painel">
+<a href="<?= e($u['baixar']) ?>">Baixar</a>
+</div>
+</details>
+<?php endif; ?>
+<?php endif; ?>
+</div>
+</li>
 <?php endforeach; ?>
-        </tbody>
-    </table>
-    </div>
+    </ul>
 </section>
 
 <section class="zona-perigo" aria-labelledby="perigo-titulo">

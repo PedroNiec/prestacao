@@ -10,7 +10,7 @@ use App\Core\Request;
 use App\Core\Response;
 use PHPUnit\Framework\TestCase;
 
-/** Tela do Projeto (specs/melhoria-visual-tela-projeto.md): estrutura e critérios de aceitação. */
+/** Tela do Projeto (specs/redesenho-tela-projeto.md, que refaz a fase 2.1): estrutura e critérios de aceitação. */
 final class TelaProjetoTest extends TestCase
 {
     private int $pid;
@@ -47,12 +47,32 @@ final class TelaProjetoTest extends TestCase
     /** @return array<string,string> HTML de cada linha, por código */
     private function linhas(string $html): array
     {
-        preg_match_all('#<tr id="doc-([0-9a-z]+)".*?</tr>#s', $html, $m, PREG_SET_ORDER);
+        preg_match_all('#<li id="doc-([0-9a-z]+)".*?</li>#s', $html, $m, PREG_SET_ORDER);
         $out = [];
-        foreach ($m as [$tr, $codigo]) {
-            $out[$codigo] = $tr;
+        foreach ($m as [$li, $codigo]) {
+            $out[$codigo] = $li;
         }
         return $out;
+    }
+
+    /** Remove todos os <details> (inclusive os aninhados) que começam com $abertura, ex.: '<details class="menu-mais">'. */
+    private function semDetails(string $html, string $abertura = '<details'): string
+    {
+        while (($ini = strpos($html, $abertura)) !== false) {
+            $prof = 0;
+            $pos = $ini;
+            while (preg_match('#<(/?)details\b#', $html, $m, PREG_OFFSET_CAPTURE, $pos)) {
+                $prof += $m[1][0] === '/' ? -1 : 1;
+                $pos = $m[0][1] + 1;
+                if ($prof === 0) {
+                    $fim = (int) strpos($html, '>', $m[0][1]) + 1;
+                    $html = substr($html, 0, $ini) . substr($html, $fim);
+                    continue 2;
+                }
+            }
+            break;
+        }
+        return $html;
     }
 
     public function testHeaderShowsObjectMunicipalityAndBreadcrumb(): void
@@ -81,14 +101,13 @@ final class TelaProjetoTest extends TestCase
         // CA-P01: todo campo de arquivo fica dentro de um <details> fechado
         $html = $this->pagina();
         $this->assertSame(13, substr_count($html, 'type="file"'));
-        $semDetails = preg_replace('#<details class="recolhe">.*?</details>#s', '', $html);
-        $this->assertStringNotContainsString('type="file"', (string) $semDetails);
-        $this->assertStringNotContainsString('<details class="recolhe" open', $html);
+        $this->assertStringNotContainsString('type="file"', $this->semDetails($html));
+        $this->assertDoesNotMatchRegularExpression('#<details[^>]*\sopen#', $html, 'nenhum painel nem menu abre sozinho');
     }
 
     public function testUploadFormsKeepTheirContract(): void
     {
-        $tr = $this->linhas($this->pagina())['16'];
+        $tr = $this->linhas($this->pagina())['16'];  // sem arquivo: o painel de envio é aberto pelo botão principal
         $this->assertStringContainsString("action=\"/projetos/{$this->pid}/documentos/16/enviar\" enctype=\"multipart/form-data\"", $tr);
         $this->assertStringContainsString('name="arquivo" accept="image/png,.png" required aria-label="Arquivo PNG do documento 16"', $tr);
         $this->assertStringContainsString('<summary class="btn secundario pequeno">Enviar arquivo</summary>', $tr);
@@ -97,19 +116,44 @@ final class TelaProjetoTest extends TestCase
 
     public function testAtMostOneHighlightedActionPerRow(): void
     {
-        // CA-P02: fora do painel recolhido, no máximo um botão por linha
+        // CA-T03: fora dos painéis e do menu ⋮, no máximo um botão por linha
         $this->enviar('18');
         $linhas = $this->linhas($this->pagina());
         $this->assertSame(array_column(DocumentCatalog::all(), 'codigo'), array_map('strval', array_keys($linhas)));
-        foreach ($linhas as $codigo => $tr) {
-            $visivel = (string) preg_replace('#<div class="recolhe-painel">.*?</div>#s', '', $tr);
+        foreach ($linhas as $codigo => $li) {
+            $visivel = $this->semDetails($li, '<details class="menu-mais">');
+            $visivel = (string) preg_replace('#<div class="recolhe-painel">.*?</div>#s', '', $visivel);
             $this->assertLessThanOrEqual(1, substr_count($visivel, 'class="btn'), "linha $codigo");
         }
-        $tr = $linhas['18'];
-        $this->assertStringContainsString('>Ver</a>', $tr);
-        $this->assertStringContainsString('>Baixar</a>', $tr);
-        $this->assertStringContainsString('<summary class="btn secundario pequeno">Substituir</summary>', $tr);
-        $this->assertStringContainsString("onsubmit=\"return confirm('Remover este arquivo?')\"", $tr);
+    }
+
+    public function testUploadWithFileHasViewAsMainActionAndSecondaryActionsInMenu(): void
+    {
+        $this->enviar('18');
+        $li = $this->linhas($this->pagina())['18'];
+        $this->assertStringContainsString('class="btn secundario pequeno" href="/projetos/' . $this->pid . '/documentos/18/baixar?ver=1" target="_blank" rel="noopener">Ver</a>', $li);
+        $this->assertStringContainsString('<summary aria-label="Mais ações para o documento 18 — Parecer do Controle Interno">⋮</summary>', $li);
+        $menu = substr($li, (int) strpos($li, '<div class="menu-mais-painel">'));
+        $this->assertStringContainsString('>Baixar</a>', $menu);
+        $this->assertStringContainsString('<summary class="menu-item">Substituir</summary>', $menu);
+        $this->assertStringContainsString('action="/projetos/' . $this->pid . '/documentos/18/enviar" enctype="multipart/form-data"', $menu);
+        $this->assertStringContainsString("onsubmit=\"return confirm('Remover este arquivo?')\"", $menu);
+        $this->assertStringContainsString('>Remover</button>', $menu);
+        $this->assertStringNotContainsString('Enviar arquivo', $li, 'com arquivo, a ação principal deixa de ser enviar');
+    }
+
+    public function testMenuAppearsOnlyWhenThereAreSecondaryActions(): void
+    {
+        $pdo = Database::connection();
+        $pdo->prepare('INSERT INTO documentos (projeto_id, doc_codigo, caminho) VALUES (?, ?, ?)')->execute([$this->pid, '03', 'x.pdf']); // junção com PDF
+        $linhas = $this->linhas($this->pagina());
+        foreach (['01', '02', '09', '10b', '16'] as $semMenu) {   // formulário/junção sem PDF e uploads sem arquivo
+            $this->assertStringNotContainsString('menu-mais', $linhas[$semMenu], "linha $semMenu não tem ação secundária");
+        }
+        $this->assertStringContainsString('>Gerenciar arquivos</a>', $linhas['03']);
+        $this->assertStringContainsString('<summary aria-label="Mais ações para o documento 03 — Notas fiscais">⋮</summary>', $linhas['03']);
+        $this->assertStringContainsString('/documentos/03/baixar">Baixar</a>', $linhas['03']);
+        $this->assertStringNotContainsString('Remover', $linhas['03'], 'documento gerado não tem remover');
     }
 
     public function testDeleteOnlyInDangerZoneWithConfirmation(): void
@@ -123,17 +167,42 @@ final class TelaProjetoTest extends TestCase
         );
     }
 
-    public function testListHasFourColumnsAndKeepsTexts(): void
+    public function testListIsASemanticListAndKeepsTexts(): void
     {
         $html = $this->pagina();
-        $this->assertSame(25, preg_match_all('#<tr id="doc-#', $html));
+        $this->assertSame(25, preg_match_all('#<li id="doc-#', $html));
+        $this->assertStringContainsString('<ul class="doc-lista">', $html);
+        $this->assertStringNotContainsString('<table', $html);
+        $this->assertStringNotContainsString('role="columnheader"', $html);
         $this->assertStringNotContainsString('Como é preenchido', $html);
-        $this->assertSame(4, substr_count($html, 'role="columnheader"'));
         // DEC-P3 mantinha os textos provisórios; com a Etapa 9 (specs/relacao-de-bens.md, DEC-B2) eles deixaram de existir
         $this->assertStringNotContainsString('Disponível em etapa futura', $html);
         $this->assertStringNotContainsString('será habilitado na próxima etapa', $html);
         $this->assertStringContainsString("href=\"/projetos/{$this->pid}/relacao-de-bens\">Abrir relação de bens</a>", $html);
         $this->assertStringContainsString('<small class="doc-tipo">Junção de PDFs</small>', $html);
+        $this->assertStringNotContainsString('resumo', strtolower($html), 'sem resumo "N de 25" nem barra de andamento (DEC-P1)');
+    }
+
+    public function testHeaderHasIdentityZipNoticeAndCompactDataStrip(): void
+    {
+        $html = $this->pagina();
+        $cab = substr($html, (int) strpos($html, '<div class="barra projeto-cab">'), 2400);
+        $this->assertStringContainsString('<span class="icone-pasta" aria-hidden="true"></span>', $cab);
+        $this->assertStringContainsString('<p class="dica projeto-zip">', $cab);
+        $this->assertStringContainsString('Nenhum documento com PDF ainda', $cab);
+        $this->assertStringContainsString('<dl class="dados-faixa">', $html);
+        $this->assertStringNotContainsString('dados-grade', $html);
+        $this->assertSame(8, substr_count($html, '<dt>'), 'Concedente, Processo, PP, NE, NL, Local e data, Contador, Prefeito');
+    }
+
+    public function testZipNoticeShowsPendingAndKeepsConfirmation(): void
+    {
+        $pdo = Database::connection();
+        $pdo->prepare('INSERT INTO documentos (projeto_id, doc_codigo, caminho, desatualizado) VALUES (?, ?, ?, 1)')->execute([$this->pid, '03', 'x.pdf']);
+        $html = $this->pagina();
+        $this->assertStringContainsString('1 documento(s) no ZIP', $html);
+        $this->assertStringContainsString('<span class="tag aviso-tag">1 desatualizado(s)</span>', $html);
+        $this->assertStringContainsString('onclick="return confirm(', $html);
     }
 
     public function testOutdatedRowIsMarked(): void
@@ -141,7 +210,7 @@ final class TelaProjetoTest extends TestCase
         Database::connection()->prepare('INSERT INTO documentos (projeto_id, doc_codigo, caminho, desatualizado) VALUES (?, ?, ?, 1)')
             ->execute([$this->pid, '03', 'x.pdf']);
         $linhas = $this->linhas($this->pagina());
-        $this->assertStringContainsString('class="doc-linha doc-pendente"', $linhas['03']);
+        $this->assertStringContainsString('class="doc-item doc-pendente"', $linhas['03']);
         $this->assertStringContainsString('<span class="tag aviso-tag">Desatualizado</span>', $linhas['03']);
         $this->assertStringNotContainsString('doc-pendente', $linhas['02']);
     }

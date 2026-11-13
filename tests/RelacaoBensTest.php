@@ -155,13 +155,13 @@ final class RelacaoBensTest extends TestCase
         // CA-B05
         $this->criar('Ônibus', '10,00');
         $page = $this->get("/projetos/{$this->pid}")->body;
-        preg_match('#<tr id="doc-09".*?</tr>#s', $page, $m);
+        preg_match('#<li id="doc-09".*?</li>#s', $page, $m);
         $this->assertStringContainsString('<span class="tag aviso-tag">Não gerado</span>', $m[0]);
         $this->assertStringContainsString('1 bem(ns)', $m[0]);
         $this->assertStringContainsString("href=\"{$this->rb}\">Abrir relação de bens</a>", $m[0]);
 
         $this->post("{$this->rb}/gerar");
-        preg_match('#<tr id="doc-09".*?</tr>#s', $this->get("/projetos/{$this->pid}")->body, $m);
+        preg_match('#<li id="doc-09".*?</li>#s', $this->get("/projetos/{$this->pid}")->body, $m);
         $this->assertStringContainsString('<span class="tag ok">Gerado</span>', $m[0]);
         $this->assertStringContainsString("href=\"/projetos/{$this->pid}/documentos/09/baixar\">Baixar</a>", $m[0]);
     }

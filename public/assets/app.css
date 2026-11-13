@@ -277,7 +277,6 @@ td.acoes > * { vertical-align: middle; }
 td.acoes form { display: inline-block; }
 td.acoes > a, td.acoes > form { margin-right: var(--esp-2); }
 .arq { display: block; color: var(--texto-suave); word-break: break-all; }
-.breve { color: var(--texto-suave); }
 .envio { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-2); margin-top: var(--esp-2); }
 .envio input[type=file] { max-width: 260px; font-size: var(--fs-sm); color: var(--texto); }
 .envio input[type=file]::file-selector-button, .form input[type=file]::file-selector-button {
@@ -325,32 +324,12 @@ td.acoes > a, td.acoes > form { margin-right: var(--esp-2); }
     .alertas { top: var(--esp-1); }
 }
 
-/* 8. TELA DO PROJETO (templates/projetos/show.php) ------------------------- */
+/* 8. CABEÇALHO DAS TELAS DE PROJETO e envio recolhido (a tela do Projeto em si está em projetos.css) -- */
 /* Cabeçalho: objeto como título, município e número como subtítulo */
 .projeto-cab { align-items: flex-start; margin-bottom: var(--esp-5); }
 .projeto-titulo { flex: 1 1 420px; min-width: 0; }
 .projeto-titulo h1 { margin: 0 0 var(--esp-1); overflow-wrap: anywhere; }
 .projeto-sub { margin: 0; color: var(--texto-suave); }
-/* Cartão "Dados do projeto": rótulo pequeno acima do valor */
-.projeto-dados { margin-bottom: var(--esp-2); }
-.cartao-titulo { margin: 0 0 var(--esp-4); font-size: var(--fs-base); }
-.dados-grade { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--esp-4) var(--esp-5); margin: 0; }
-.dados-grade > div { min-width: 0; }
-.dados-grade .dado-largo { grid-column: 1 / -1; }
-.dados-grade dt { color: var(--texto-suave); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.dados-grade dd { margin: var(--esp-1) 0 0; overflow-wrap: anywhere; }
-.dados-grade dd small { color: var(--texto-suave); }
-/* Lista de documentos */
-.docs td { vertical-align: middle; padding-top: var(--esp-3); padding-bottom: var(--esp-3); }
-.docs .docs-num { width: 3.5rem; color: var(--texto-suave); font-weight: 600; font-variant-numeric: tabular-nums; }
-.docs .docs-acoes { width: 36%; }
-.doc-nome { display: block; font-weight: 600; color: var(--texto); }
-.doc-tipo { display: block; margin-top: 2px; color: var(--texto-suave); font-size: var(--fs-xs); }
-.docs-situacao .arq { margin-top: var(--esp-1); font-size: var(--fs-xs); }
-/* pendência: faixa âmbar à esquerda (a etiqueta com texto continua sendo a informação) */
-.doc-pendente td:first-child { box-shadow: inset 4px 0 0 var(--aviso-fg); }
-/* âncora #doc-XX não fica sob as mensagens fixas */
-.doc-linha { scroll-margin-top: 7rem; }
 /* Envio recolhido: <details> nativo, sem JavaScript */
 .recolhe > summary { list-style: none; user-select: none; }
 .recolhe > summary::-webkit-details-marker { display: none; }
@@ -363,44 +342,9 @@ td.acoes > a, td.acoes > form { margin-right: var(--esp-2); }
     background: var(--fundo); border: 1px solid var(--borda-suave); border-radius: var(--raio-2);
 }
 .recolhe-painel .envio { margin-top: 0; }
-.recolhe-painel .breve { display: block; margin-top: var(--esp-2); font-size: var(--fs-xs); }
-/* Zona de perigo: no fim da página, discreta */
-.zona-perigo {
-    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--esp-3) var(--esp-5);
-    margin-top: var(--esp-7); padding: var(--esp-4) var(--esp-5);
-    background: var(--superficie); border: 1px solid var(--borda-suave); border-left: 4px solid var(--perigo-solido);
-    border-radius: var(--raio-2);
-}
-.zona-perigo h2 { margin: 0 0 var(--esp-1); font-size: var(--fs-base); color: var(--perigo-fg); }
-.zona-perigo p { margin: 0; color: var(--texto-suave); font-size: var(--fs-sm); }
-.zona-perigo form { margin: 0; }
-@media (max-width: 900px) {
-    .dados-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-/* Tela estreita: cada documento vira um cartão (papéis ARIA no HTML preservam a semântica de tabela) */
+/* Tela estreita: os botões do cabeçalho das telas de projeto ocupam a largura */
 @media (max-width: 640px) {
     .projeto-cab .btn { width: 100%; }
-    .dados-grade { grid-template-columns: 1fr; }
-    .rolagem > table.docs { min-width: 0; }
-    .docs, .docs tbody { display: block; background: none; border: 0; }
-    .docs thead {
-        position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-        overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-    }
-    .docs tr.doc-linha {
-        display: grid; grid-template-columns: auto 1fr; gap: var(--esp-2) var(--esp-3);
-        margin-bottom: var(--esp-3); padding: var(--esp-3) var(--esp-4);
-        background: var(--superficie); border: 1px solid var(--borda-suave); border-radius: var(--raio-2); box-shadow: var(--sombra-1);
-    }
-    .docs tr.doc-linha:hover { background: var(--superficie); }
-    .docs td { display: block; width: auto; padding: 0; border: 0; }
-    .docs .docs-acoes { width: auto; }
-    .docs-situacao, .docs-acoes { grid-column: 1 / -1; }
-    .docs-situacao::before { content: attr(data-rotulo) ": "; color: var(--texto-suave); font-size: var(--fs-xs); font-weight: 600; }
-    .docs tr.doc-pendente { box-shadow: inset 4px 0 0 var(--aviso-fg), var(--sombra-1); }
-    .doc-pendente td:first-child { box-shadow: none; }
-    .zona-perigo { padding: var(--esp-4); }
-    .zona-perigo form, .zona-perigo .btn { width: 100%; }
 }
 
 /* 9. DEMAIS TELAS (spec melhoria-visual-demais-telas) ---------------------- */
@@ -410,6 +354,7 @@ td.acoes > a, td.acoes > form { margin-right: var(--esp-2); }
 .atalhos { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-4); margin: var(--esp-2) 0 0; padding: 0; list-style: none; font-size: var(--fs-sm); }
 /* Cartão do PDF do documento */
 .cartao-pdf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--esp-3) var(--esp-5); margin-bottom: var(--esp-5); }
+.cartao-titulo { margin: 0 0 var(--esp-4); font-size: var(--fs-base); }
 .cartao-pdf .cartao-titulo { margin-bottom: var(--esp-1); }
 .cartao-pdf-situacao { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-1) var(--esp-2); margin: 0; font-size: var(--fs-sm); color: var(--texto-suave); }
 /* Seções em cartão, com cabeçalho (título + ação) */

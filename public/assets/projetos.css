@@ -35,3 +35,68 @@
     .icone-pasta { width: 36px; height: 36px; }
     .icone-pasta::before { inset: 8px; }
 }
+
+/* 13. TELA DO PROJETO (specs/redesenho-tela-projeto.md) ---------------------- */
+/* Cabeçalho de identidade: ícone + título + aviso do ZIP */
+.projeto-ident { display: flex; align-items: flex-start; gap: var(--esp-4); flex: 1 1 420px; min-width: 0; }
+.projeto-ident .icone-pasta { flex: none; }
+.projeto-ident .projeto-titulo { flex: 1 1 0; }
+.projeto-zip { margin: var(--esp-2) 0 0; }
+/* Dados do projeto: faixa compacta de rótulo/valor que quebra conforme a largura */
+.projeto-dados { margin-bottom: var(--esp-5); padding: var(--esp-3) var(--esp-5); }
+.dados-faixa { display: flex; flex-wrap: wrap; gap: var(--esp-3) var(--esp-6); margin: 0; }
+.dados-faixa > div { min-width: 0; }
+.dados-faixa dt { color: var(--texto-suave); font-size: var(--fs-xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.dados-faixa dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.dados-faixa dd small { color: var(--texto-suave); }
+/* Lista de documentos: uma linha larga por documento */
+.doc-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--esp-2); }
+.doc-item {
+    display: grid; grid-template-columns: 3rem minmax(0, 1.6fr) minmax(0, 1fr) 14rem; align-items: center; gap: var(--esp-4);
+    padding: var(--esp-3) var(--esp-4); scroll-margin-top: 7rem;
+    background: var(--superficie); border: 1px solid var(--borda-suave); border-radius: var(--raio-2); box-shadow: var(--sombra-1);
+}
+.doc-item:hover { border-color: #c3ccd5; }
+.doc-pendente { border-color: var(--aviso-fg); box-shadow: inset 4px 0 0 var(--aviso-fg), var(--sombra-1); }
+.doc-num { color: var(--texto-suave); font-weight: 600; font-variant-numeric: tabular-nums; }
+.doc-corpo { min-width: 0; overflow-wrap: anywhere; }
+.doc-nome { display: block; font-weight: 600; color: var(--texto); }
+.doc-tipo { display: block; margin-top: 2px; color: var(--texto-suave); font-size: var(--fs-xs); }
+.doc-situacao .arq { margin-top: var(--esp-1); font-size: var(--fs-xs); }
+.doc-acoes { display: flex; align-items: center; justify-content: flex-end; gap: var(--esp-2); }
+.doc-envio { position: relative; }
+.doc-envio .recolhe-painel { position: absolute; right: 0; top: calc(100% + var(--esp-1)); z-index: 20; min-width: 340px; box-shadow: var(--sombra-2); }
+.doc-acoes .menu-mais-painel { top: calc(100% + var(--esp-1)); bottom: auto; min-width: 220px; }
+.menu-mais-painel .recolhe-painel { margin: var(--esp-1) 0; }
+.breve { color: var(--texto-suave); }
+.recolhe-painel .breve { display: block; margin-top: var(--esp-2); font-size: var(--fs-xs); }
+.menu-item { display: block; padding: var(--esp-1) var(--esp-2); min-height: 32px; line-height: 24px; list-style: none; cursor: pointer; border-radius: var(--raio-1); color: var(--cor-primaria); font-weight: 500; }
+.menu-item::-webkit-details-marker { display: none; }
+.menu-item:hover { background: var(--cor-primaria-suave); text-decoration: underline; }
+/* Zona de perigo: no fim da página, discreta */
+.zona-perigo {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--esp-3) var(--esp-5);
+    margin-top: var(--esp-7); padding: var(--esp-4) var(--esp-5);
+    background: var(--superficie); border: 1px solid var(--borda-suave); border-left: 4px solid var(--perigo-solido);
+    border-radius: var(--raio-2);
+}
+.zona-perigo h2 { margin: 0 0 var(--esp-1); font-size: var(--fs-base); color: var(--perigo-fg); }
+.zona-perigo p { margin: 0; color: var(--texto-suave); font-size: var(--fs-sm); }
+.zona-perigo form { margin: 0; }
+@media (max-width: 900px) {
+    .doc-item { grid-template-columns: 3rem minmax(0, 1fr) 14rem; }
+    .doc-situacao { grid-column: 2; grid-row: 2; }
+    .doc-acoes { grid-column: 3; grid-row: 1 / span 2; }
+}
+/* Tela estreita: a linha empilha (identidade e situação em cima, ações embaixo) */
+@media (max-width: 640px) {
+    .projeto-ident { flex-basis: 100%; }
+    .projeto-dados { padding: var(--esp-3) var(--esp-4); }
+    .doc-item { grid-template-columns: auto minmax(0, 1fr); gap: var(--esp-2) var(--esp-3); padding: var(--esp-3); }
+    .doc-situacao, .doc-acoes { grid-column: 1 / -1; grid-row: auto; }
+    .doc-acoes { justify-content: flex-start; flex-wrap: wrap; }
+    .doc-envio[open] { flex-basis: 100%; }
+    .doc-envio .recolhe-painel { position: static; min-width: 0; margin-top: var(--esp-2); box-shadow: none; }
+    .zona-perigo { padding: var(--esp-4); }
+    .zona-perigo form, .zona-perigo .btn { width: 100%; }
+}

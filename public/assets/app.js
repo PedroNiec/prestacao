@@ -24,3 +24,19 @@ document.addEventListener('click', function (e) {
         try { localStorage.setItem('lateral', recolhida ? '1' : '0'); } catch (e) {}
     });
 })();
+
+// Menus ⋮ e painéis de envio (<details>): abrir um fecha os outros; clicar fora ou apertar Esc fecha. Sem JavaScript, continuam abrindo/fechando no próprio botão.
+(function () {
+    var SEL = 'details.menu-mais[open], details.doc-envio[open]';
+    function fechar(exceto) {
+        document.querySelectorAll(SEL).forEach(function (d) {
+            if (d === exceto) return;
+            d.removeAttribute('open');
+            d.querySelectorAll('details[open]').forEach(function (n) { n.removeAttribute('open'); });
+        });
+    }
+    document.addEventListener('click', function (e) {
+        fechar(e.target.closest('details.menu-mais, details.doc-envio'));
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(null); });
+})();
