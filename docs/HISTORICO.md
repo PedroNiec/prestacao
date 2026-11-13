@@ -1,6 +1,6 @@
 # Histórico do projeto — Sistema de Prestação de Contas
 
-**Atualizado em:** 2026-11-12 (fim da segunda sessão do dia)
+**Atualizado em:** 2026-11-12 (fim da segunda sessão do dia; tema da próxima sessão em §9, item 0)
 **Para quem é:** você e qualquer sessão futura do Claude que precise saber **onde paramos, o que foi
 decidido e por quê**. Complementa os documentos oficiais em `specs/` e `plans/` (que são a fonte da
 verdade de cada funcionalidade). Para retomar em outro computador, veja `docs/GUIA-OUTRO-COMPUTADOR.md`.
@@ -264,6 +264,17 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 
 ## 9. Próximos passos (sugestão; o usuário escolhe)
 
+0. **COMBINADO PARA A PRÓXIMA SESSÃO: conciliação × balancete.** Ao usar o sistema, o usuário lançou uma despesa
+   no balancete e esperava vê-la na conciliação. **Hoje isso não acontece, por design (Etapa 8):** o balancete alimenta
+   só as **receitas** da conciliação; as **despesas** vêm só das notas fiscais **digitadas na própria conciliação**.
+   O resultado são duas versões da mesma prestação, que o sistema não cruza. No projeto de demonstração "Pavimentação
+   asfáltica…", o balancete tinha 1 despesa de 743.376,14 (sem NF) e nenhuma receita, enquanto a conciliação tinha
+   receitas digitadas à mão (1.500.000,00 + 960.000,00) e outra nota (NF 217, 307.395,92).
+   **Proposta a discutir via `/spec-driven`:** a conciliação **montar as notas a partir do balancete**, agrupando as
+   despesas pelo nº da NF (bruto = soma das linhas da NF; IR/ISS/INSS = linhas de retenção), editáveis com
+   "alterado"/"Restaurar", como as receitas. **Decisões em aberto:** exigir o nº da NF nas despesas? Como
+   identificar qual retenção é IR, ISS ou INSS? O que fazer com as notas já digitadas? Isso se junta à premissa das
+   devoluções fora do total (§6).
 1. **Retomar o redesenho visual (fase 3)**, tela por tela, no estilo de Municípios (`specs/redesenho-layout-municipios.md`,
    CSS seções 10 a 12). Sugestão de ordem: tela do Projeto → formulários → balancete, conciliação e físico-financeiro →
    junção. **Antes da próxima tela, decidir o tamanho do CSS** (39,4 de 40 KB). Recomendado: limpar regras antigas que
