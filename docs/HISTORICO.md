@@ -237,7 +237,10 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
   2026-11-12. `storage/` e `planilha/` (dados reais) ficam **fora** de propósito; o commit usa o e-mail pessoal
   do usuário. Antes de publicar, uma verificação de dados pessoais achou o nome da empresa no `composer.json`
   (pacote `ixcsoft/prestacao`), trocado por `pedroniec/prestacao`.
-- **Tamanho do CSS:** `app.css` em 39,2 KB (limite do teste: 40 KB, elevado na DEC-L3). Ainda há regras da
+  **Trabalho de 2026-11-12 (segunda sessão)** está em 2 commits locais no branch `melhorias-2026-11-12`
+  (suporte ao Windows; etapas 9–11 + redesenho + balancete na tela), **ainda não juntado à `main` nem enviado ao
+  GitHub**. Os testes e um spec repetem os nomes do contador e do prefeito do exemplo, que já estavam publicados.
+- **Tamanho do CSS:** `app.css` em 39,4 KB (limite do teste: 40 KB, elevado na DEC-L3). Ainda há regras da
   fundação que as telas redesenhadas não usam mais (ex.: `.topo`, mantidas por um teste de nomes legados).
 - Os PDFs não são idênticos pixel a pixel à planilha (decisão do usuário: "muito próximo").
 - **Neste computador Windows** (2026-11-12): faltava `vendor/` (rodar `composer install`); Ghostscript e LibreOffice
