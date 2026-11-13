@@ -315,7 +315,7 @@ final class DesignSystemTest extends TestCase
         // Linha de base registrada antes da fundação visual. Se os PDFs forem alterados de propósito
         // em outra melhoria, atualize estes hashes.
         $esperado = [
-            'balancete.php' => '3750d37767636e513f0d7feaf0fc5354a4a656d0c72387d6a3a321629dcc4367',
+            'balancete.php' => '859125ca38e3d2ad9a66a9b9658c305b413d3cc5d67a6bd4d5aa6004570b26f5',
             '_cabecalho.php' => 'de4faebed6341171e57d6d284c753743fd8433697b254957083d37026844331a',
             'conciliacao.php' => 'cca7438def0d566785714a71d62aa9f154d6fc66d19e4190793912055a25ddce',
             '_estilo.php' => 'bc97713000c708d9f040bc83ab0dcbbee81a2bdd27727741997181d832619b16',

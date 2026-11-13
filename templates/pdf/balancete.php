@@ -11,6 +11,10 @@ $cel = fn (int $v) => Money::formatOrDash($v);
 <head>
 <meta charset="utf-8">
 <?php require __DIR__ . '/_estilo.php'; ?>
+<style>
+    /* Linhas mais compactas: cabem mais lançamentos por página (só no balancete). */
+    table.grade td, table.grade th { padding: 1.5pt 3pt; }
+</style>
 </head>
 <body>
 <?php require __DIR__ . '/_cabecalho.php'; ?>

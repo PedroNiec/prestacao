@@ -47,38 +47,46 @@ $novoId = (int) ($novoId ?? 0);
         Comece lançando a transferência recebida (receita) no formulário acima.
     </div>
 <?php else: ?>
-<div class="rolagem">
-<table>
+<div class="rolagem rolagem-menu">
+<table class="lanc">
     <thead><tr>
-        <th>Parc.</th><th>Descrição</th><th>CNPJ</th><th>NF</th><th>Empenho</th><th>DOC</th><th>Data</th><th>Origem</th><th>Fonte</th>
-        <th class="num">Receita</th><th class="num">Despesa</th><th></th>
+        <th>Descrição</th><th>Parc.</th><th>NF</th><th>Data</th><th>Fonte</th>
+        <th class="num">Receita</th><th class="num">Despesa</th><th><span class="so-leitor">Ações</span></th>
     </tr></thead>
     <tbody>
-    <?php foreach ($lancamentos as $i => $l): $lid = (int) $l['id']; ?>
+    <?php foreach ($lancamentos as $i => $l): $lid = (int) $l['id'];
+        $apoio = array_filter([
+            $l['cnpj'] !== '' ? 'CNPJ ' . $l['cnpj'] : '',
+            $l['nota_empenho'] !== '' ? 'Empenho ' . $l['nota_empenho'] : '',
+            $l['doc'] !== '' ? 'DOC ' . $l['doc'] : '',
+            BalanceteCalculator::ORIGENS[$l['origem']] ?? $l['origem'],
+        ], fn ($t) => $t !== ''); ?>
         <tr id="l<?= $lid ?>"<?= $lid === $novoId ? ' class="linha-nova"' : '' ?>>
+            <td class="lanc-desc"><?= e($l['descricao']) ?><?php if ($lid === $novoId): ?> <span class="tag info">novo</span><?php endif; ?>
+                <small><?= e(implode(' · ', $apoio)) ?></small></td>
             <td><?= e($l['boletim_parcela']) ?></td>
-            <td><?= e($l['descricao']) ?><?php if ($lid === $novoId): ?> <span class="tag info">novo</span><?php endif; ?></td>
-            <td><?= e($l['cnpj']) ?></td>
             <td><?= e($l['nota_fiscal']) ?></td>
-            <td><?= e($l['nota_empenho']) ?></td>
-            <td><?= e($l['doc']) ?></td>
-            <td><?= e(Dates::br((string) $l['data'])) ?></td>
-            <td><?= e(BalanceteCalculator::ORIGENS[$l['origem']] ?? $l['origem']) ?></td>
+            <td class="nowrap"><?= e(Dates::br((string) $l['data'])) ?></td>
             <td><?= (int) $l['fonte'] ?></td>
-            <td class="num"><?= $l['tipo'] === 'receita' ? e(Money::format((int) $l['valor_centavos'])) : '' ?></td>
-            <td class="num"><?= $l['tipo'] === 'despesa' ? e(Money::format((int) $l['valor_centavos'])) : '' ?></td>
-            <td class="acoes">
-                <a href="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/editar">Editar</a>
-                <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="cima"><button class="link" type="submit" aria-label="Mover para cima" <?= $i === 0 ? 'disabled' : '' ?>>↑</button></form>
-                <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="baixo"><button class="link" type="submit" aria-label="Mover para baixo" <?= $i === count($lancamentos) - 1 ? 'disabled' : '' ?>>↓</button></form>
-                <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/excluir" onsubmit="return confirm('Excluir este lançamento?')"><?= csrf_field() ?><button class="link perigo" type="submit">Excluir</button></form>
+            <td class="num lanc-rec"><?= $l['tipo'] === 'receita' ? e(Money::format((int) $l['valor_centavos'])) : '' ?></td>
+            <td class="num lanc-desp"><?= $l['tipo'] === 'despesa' ? e(Money::format((int) $l['valor_centavos'])) : '' ?></td>
+            <td class="lanc-menu">
+                <details class="menu-mais">
+                    <summary aria-label="Mais ações para o lançamento <?= $lid ?>">⋮</summary>
+                    <div class="menu-mais-painel">
+                        <a href="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/editar">Editar</a>
+                        <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="cima"><button class="link" type="submit" <?= $i === 0 ? 'disabled' : '' ?>>Mover para cima</button></form>
+                        <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/mover"><?= csrf_field() ?><input type="hidden" name="direcao" value="baixo"><button class="link" type="submit" <?= $i === count($lancamentos) - 1 ? 'disabled' : '' ?>>Mover para baixo</button></form>
+                        <form method="post" action="<?= e($base) ?>/balancete/lancamentos/<?= $lid ?>/excluir" onsubmit="return confirm('Excluir este lançamento?')"><?= csrf_field() ?><button class="link perigo" type="submit">Excluir</button></form>
+                    </div>
+                </details>
             </td>
         </tr>
     <?php endforeach; ?>
     </tbody>
     <tfoot>
-        <tr><th colspan="9">Total geral</th><th class="num"><?= e(Money::format($totais['receita'])) ?></th><th class="num"><?= e(Money::format($totais['despesa'])) ?></th><th></th></tr>
-        <tr><th colspan="9">Saldo (receita − despesa)</th><th class="num" colspan="2"><?= e(Money::format($totais['saldo'])) ?></th><th></th></tr>
+        <tr><th colspan="5">Total geral</th><th class="num"><?= e(Money::format($totais['receita'])) ?></th><th class="num"><?= e(Money::format($totais['despesa'])) ?></th><th></th></tr>
+        <tr><th colspan="5">Saldo (receita − despesa)</th><th class="num" colspan="2"><?= e(Money::format($totais['saldo'])) ?></th><th></th></tr>
     </tfoot>
 </table>
 </div>
