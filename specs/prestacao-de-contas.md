@@ -284,3 +284,4 @@ montagem manual dos PDFs.
 | 1.9 | Relação de bens (RF-16, DEC-02) decidida: várias linhas, descrição e valor digitados, título editável, total sempre. RF-18 deixa de valer para o doc. 9 | 2026-11-12 |
 | 1.10 | ZIP (RF-21, EX-05, DEC-06) implementado: nomes do catálogo, desatualizados incluídos com aviso, "não gerados" avisados | 2026-11-12 |
 | 1.11 | **Validação final (Etapa 11)**: CA-01 a CA-09 atendidos, 322/322 testes no Windows. Relatório em `docs/VALIDACAO-FINAL.md` | 2026-11-12 |
+| 1.12 | **Conciliação: receitas independentes do balancete** (`specs/conciliacao-receitas-independentes.md`): lista livre digitada (tipo, descrição, valor); **RF-18 e RN-07 deixam de valer também para o doc. 15** (sem sobrescrita nem restauração); o balancete não invalida mais a conciliação | 2026-11-13 |

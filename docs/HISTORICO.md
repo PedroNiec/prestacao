@@ -1,6 +1,6 @@
 # Histórico do projeto — Sistema de Prestação de Contas
 
-**Atualizado em:** 2026-11-12 (fim da segunda sessão do dia; tema da próxima sessão em §9, item 0)
+**Atualizado em:** 2026-11-13 (sessão de ajustes: PDF e grid do balancete, sidebar recolhível, receitas da conciliação independentes)
 **Para quem é:** você e qualquer sessão futura do Claude que precise saber **onde paramos, o que foi
 decidido e por quê**. Complementa os documentos oficiais em `specs/` e `plans/` (que são a fonte da
 verdade de cada funcionalidade). Para retomar em outro computador, veja `docs/GUIA-OUTRO-COMPUTADOR.md`.
@@ -59,9 +59,9 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 
 ## 3. Estado atual (2026-11-12)
 
-**Testes: 328, todos passando neste Windows, nenhum pulado.** Rodar com `composer test` (cerca de 2 minutos).
+**Testes: 327, todos passando** (em 2026-11-13, no Linux; 328 no Windows antes da sessão de 2026-11-13). Rodar com `composer test`.
 
-**Git:** tudo **commitado na `main` e enviado ao GitHub** (`ba79583`). Diretório de trabalho limpo.
+**Git:** em 2026-11-13 há alterações **ainda não commitadas** (ver §3.3). Último commit: `c0cfeb3`.
 
 ### 3.1 Sistema (plano `plans/prestacao-de-contas-plan.md`): **concluído**
 
@@ -98,6 +98,18 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 | 3.x Demais telas no estilo da fase 3 | — | ⏸ **pausado** a pedido do usuário (voltou às etapas técnicas). Ver §9 |
 
 ---
+
+### 3.3 Sessão de 2026-11-13 (Linux, **sem commit**)
+
+| Mudança | Onde | Observação |
+|---|---|---|
+| PDF do balancete mais compacto (padding 1,5pt) | `templates/pdf/balancete.php` | 40 lançamentos: de 3 para 2 páginas. Só o balancete; hash atualizado |
+| Grid de lançamentos refinada (8 colunas, linha de apoio, receita verde/despesa vermelha, zebra, menu ⋮, linhas baixas) | `templates/balancete/index.php`, CSS §14 | Cabeçalho fixo **não** feito (rolagem horizontal do contêiner) |
+| **Sidebar recolhível** (faixa de ícones, estado no `localStorage`) | `templates/layout.php`, `app.js`, CSS §15 | Sem tooltip na faixa (um `title` quebraria um teste); botão só em tela larga |
+| **Conciliação: receitas independentes do balancete** | `specs/conciliacao-receitas-independentes.md` + plano; migração **008** | Lista livre (tipo + descrição + valor), PDF "Tipo - descrição"; tabela `overrides` e sobrescritas **removidas**; o balancete não invalida mais o doc 15 |
+
+**CSS: 40.915 de 40.960 bytes (folga de 45 bytes).** A próxima mudança visual exige limpar regras antigas ou subir o limite.
+O banco real (`storage/database.sqlite`) já recebeu a migração 008 (backup anterior só na pasta de rascunhos da sessão, que é temporária).
 
 ## 4. Linha do tempo resumida
 
@@ -145,7 +157,7 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 | Balancete | Receita = entrou na conta, Despesa = saiu (uma coluna cada); **origem** (Convênio/Rendimentos/Contrapartida) define a **fonte**; retenções (IRRF etc.) são **linhas de despesa separadas, sem tipo** |
 | Balancete (tela) | **Novo lançamento na própria tela**; depois de salvar, o formulário **limpa tudo**; "Salvar e adicionar outro" removido; linha nova destacada; edição em página própria |
 | Físico-financeiro | **Várias** metas/etapas; financeiro **sempre digitado** (não deriva do balancete); "no período" e "até o período" informados separadamente |
-| Conciliação | Receitas vêm do balancete e são **editáveis** (com "alterado" e "Restaurar"); notas fiscais **digitadas** na própria conciliação; cabeçalho padrão do projeto; só o Prefeito assina; **Total de despesas = soma do bruto das notas** (**devoluções ficam fora do total**) |
+| Conciliação | **Receitas digitadas na própria conciliação (2026-11-13): lista livre com tipo Repasse/Contrapartida/Rendimentos, descrição opcional e valor > 0; PDF mostra "Tipo - descrição"; sem ligação com o balancete** (substitui a decisão da Etapa 8, que as calculava do balancete com sobrescrita); notas fiscais **digitadas** na própria conciliação; cabeçalho padrão do projeto; só o Prefeito assina; **Total de despesas = soma do bruto das notas** (**devoluções ficam fora do total**) |
 | Relação de bens | **Várias linhas**; descrição e valor **digitados** (sem cálculo; na planilha vinha do físico-financeiro); 1º bem sugere o objeto; **título editável** (padrão "RELAÇÃO DE BENS ADQUIRIDOS"); **TOTAL sempre** |
 | ZIP | Nomes **iguais ao download individual** (`01-balancete.pdf`…); nome do ZIP com o município; **desatualizados entram com aviso**; "não gerados" também avisados |
 | Visual | Tela do Projeto **sem** o resumo "N de 25" (DEC-P1); **menu lateral claro**; cartões arredondados; ações secundárias no menu ⋮; "Excluir" desabilitado para município com projetos; lista de Projetos em **linhas largas**, cartão inteiro clicável, **sem barra de andamento** |
@@ -245,7 +257,7 @@ templates/                telas (PHP); templates/partes/ = trilha e cartão do P
                           templates/balancete/_campos.php = campos do lançamento (tela e edição);
                           templates/pdf/ = PDFs dos 4 relatórios (protegidos por hash no DesignSystemTest)
 database/migrations/      001 municípios e projetos · 002 documentos · 003 arquivos (junção) ·
-                          004 lançamentos · 005 físico-financeiro · 006 conciliação e overrides · 007 relação de bens
+                          004 lançamentos · 005 físico-financeiro · 006 conciliação e overrides (overrides removida na 008) · 007 relação de bens · 008 receitas da conciliação
 tests/                    328 testes em 28 arquivos (banco e storage temporários; nunca tocam no seu storage/)
 specs/  plans/  docs/     documentação do processo
 planilha/                 planilha de referência do usuário (só leitura; dados reais; FORA do git)
@@ -264,17 +276,8 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 
 ## 9. Próximos passos (sugestão; o usuário escolhe)
 
-0. **COMBINADO PARA A PRÓXIMA SESSÃO: conciliação × balancete.** Ao usar o sistema, o usuário lançou uma despesa
-   no balancete e esperava vê-la na conciliação. **Hoje isso não acontece, por design (Etapa 8):** o balancete alimenta
-   só as **receitas** da conciliação; as **despesas** vêm só das notas fiscais **digitadas na própria conciliação**.
-   O resultado são duas versões da mesma prestação, que o sistema não cruza. No projeto de demonstração "Pavimentação
-   asfáltica…", o balancete tinha 1 despesa de 743.376,14 (sem NF) e nenhuma receita, enquanto a conciliação tinha
-   receitas digitadas à mão (1.500.000,00 + 960.000,00) e outra nota (NF 217, 307.395,92).
-   **Proposta a discutir via `/spec-driven`:** a conciliação **montar as notas a partir do balancete**, agrupando as
-   despesas pelo nº da NF (bruto = soma das linhas da NF; IR/ISS/INSS = linhas de retenção), editáveis com
-   "alterado"/"Restaurar", como as receitas. **Decisões em aberto:** exigir o nº da NF nas despesas? Como
-   identificar qual retenção é IR, ISS ou INSS? O que fazer com as notas já digitadas? Isso se junta à premissa das
-   devoluções fora do total (§6).
+0. ~~Conciliação × balancete~~ **RESOLVIDO em 2026-11-13:** a conciliação ficou totalmente independente do balancete (receitas
+   e notas digitadas). Ver §3.3 e `specs/conciliacao-receitas-independentes.md`. **Pendente:** commitar o trabalho da sessão.
 1. **Retomar o redesenho visual (fase 3)**, tela por tela, no estilo de Municípios (`specs/redesenho-layout-municipios.md`,
    CSS seções 10 a 12). Sugestão de ordem: tela do Projeto → formulários → balancete, conciliação e físico-financeiro →
    junção. **Antes da próxima tela, decidir o tamanho do CSS** (39,4 de 40 KB). Recomendado: limpar regras antigas que
@@ -301,7 +304,7 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
   contêm os nomes do contador e do prefeito do exemplo da planilha; eles já estavam publicados desde o primeiro commit.
   O trabalho da segunda sessão de 2026-11-12 foi em 2 commits (suporte ao Windows; o resto) mais 2 de documentação,
   feitos num branch, juntados à `main` (fast-forward) e enviados; o branch foi apagado.
-- **Tamanho do CSS:** `app.css` em 39,4 KB (limite do teste: 40 KB, elevado na DEC-L3).
+- **Tamanho do CSS:** `app.css` em 40.915 bytes (limite do teste: 40 KB = 40.960; folga de 45 bytes).
 - Os PDFs não são idênticos pixel a pixel à planilha (decisão do usuário: "muito próximo").
 - **Neste computador Windows:**
   - foi preciso rodar `composer install`, porque a pasta `vendor/` não existia;
@@ -327,4 +330,5 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 | `specs/melhoria-visual-fundacao.md` (+ plano) | Fundação visual |
 | `specs/melhoria-visual-tela-projeto.md` · `specs/melhoria-visual-demais-telas.md` (+ planos) | Visual fases 2.1 e 2.2 |
 | `specs/redesenho-layout-municipios.md` · `specs/redesenho-lista-projetos.md` (+ planos) | Visual fase 3 (padrão atual) |
+| `specs/conciliacao-receitas-independentes.md` (+ plano) | Conciliação: receitas digitadas, independentes do balancete (2026-11-13) |
 | `specs/SPEC_TEMPLATE.md`, `plans/PLAN_TEMPLATE.md` | Modelos de documento |

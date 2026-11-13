@@ -31,7 +31,7 @@ apresentação.
 | **CA-04** Upload, substituir e remover | ✔ | `UploadFlowTest` 11/11, `FileStorageTest` 12/12 |
 | **CA-05** Converter PowerPoint e PNG em PDF | ✔ | `ConversionServiceTest` e `ConversaoFluxoTest` sem pulados; no servidor real, PPTX (2 slides) e PNG convertidos |
 | **CA-06** Totais da planilha de exemplo em todos os relatórios | ✔ | 497.152,49 · 5.965,83 · 491.186,66 conferidos na tela e no texto dos PDFs (`BalanceteFluxoTest::testGeneratedPdfHasHeaderRowsTotalsAndSignatures`, `ConciliacaoTest::testPdfReproducesSpreadsheetExampleOnOnePage`, `FisicoFinanceiroTest::testGeneratedPdfMatchesSpreadsheetExample`). A relação de bens é digitada (decisão de 2026-11-12) |
-| **CA-07** Sobrescrever um valor calculado, ver sinalizado e restaurar | ✔ | `ConciliacaoTest::testOverrideIsSavedMarkedAndRestorable` e mais 5 testes de sobrescrita |
+| **CA-07** ~~Sobrescrever um valor calculado, ver sinalizado e restaurar~~ **Substituído em 2026-11-13**: as receitas da conciliação são digitadas (sem cálculo nem sobrescrita), ver `specs/conciliacao-receitas-independentes.md` | ✔ (histórico) | Testes de sobrescrita removidos; novos testes das receitas em `ConciliacaoTest` |
 | **CA-08** PDFs dos 4 relatórios com visual muito próximo ao da planilha | ✔ | Balancete, físico-financeiro e conciliação conferidos em imagem nas etapas 6 a 8; relação de bens e conciliação renderizadas em imagem nesta validação (layout da aba da planilha: cabeçalho, título, itens, total, local/data, assinaturas). A comparação final com o papel é do usuário |
 | **CA-09** Baixar cada PDF individual e o ZIP numerados | ✔ | `UploadFlowTest::testDownloadServesRegisteredPdf`, `ZipTest` 7/7; ZIP real com 4 PDFs idênticos (hash) aos downloads individuais |
 
