@@ -3,13 +3,14 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
-use App\Catalog\DocumentCatalog;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Core\View;
 use App\Domain\Validator;
+use App\Presenters\DocumentoLinhaPresenter;
 use App\Repositories\ArquivoRepository;
+use App\Repositories\BensRepository;
 use App\Repositories\ConciliacaoRepository;
 use App\Repositories\DocumentoRepository;
 use App\Repositories\FisicoFinanceiroRepository;
@@ -29,6 +30,7 @@ final class ProjetoController
         private LancamentoRepository $lancamentos,
         private FisicoFinanceiroRepository $fisico,
         private ConciliacaoRepository $conciliacao,
+        private BensRepository $bens,
     ) {
     }
 
@@ -75,15 +77,17 @@ final class ProjetoController
         if ($p === null) {
             return $this->naoEncontrado();
         }
+        $relatorios = [
+            '01' => ['url' => "/projetos/$id/balancete", 'rotulo' => 'Abrir balancete', 'n' => $this->lancamentos->count((int) $id), 'unidade' => 'lançamento(s)'],
+            '22' => ['url' => "/projetos/$id/fisico-financeiro", 'rotulo' => 'Abrir físico-financeiro', 'n' => $this->fisico->count((int) $id), 'unidade' => 'linha(s)'],
+            '15' => ['url' => "/projetos/$id/conciliacao", 'rotulo' => 'Abrir conciliação', 'n' => $this->conciliacao->countNotas((int) $id), 'unidade' => 'nota(s) fiscal(is)'],
+            '09' => ['url' => "/projetos/$id/relacao-de-bens", 'rotulo' => 'Abrir relação de bens', 'n' => $this->bens->count((int) $id), 'unidade' => 'bem(ns)'],
+        ];
         return Response::html(View::render('projetos/show', [
-            'titulo' => 'Projeto #' . $p['id'], 'projeto' => $p, 'documentos' => DocumentCatalog::all(),
-            'enviados' => $this->documentos->byProjeto((int) $id),
-            'contagens' => $this->arquivos->countsByProjeto((int) $id),
-            'relatorios' => [
-                '01' => ['url' => "/projetos/$id/balancete", 'rotulo' => 'Abrir balancete', 'n' => $this->lancamentos->count((int) $id), 'unidade' => 'lançamento(s)'],
-                '22' => ['url' => "/projetos/$id/fisico-financeiro", 'rotulo' => 'Abrir físico-financeiro', 'n' => $this->fisico->count((int) $id), 'unidade' => 'linha(s)'],
-                '15' => ['url' => "/projetos/$id/conciliacao", 'rotulo' => 'Abrir conciliação', 'n' => $this->conciliacao->countNotas((int) $id), 'unidade' => 'nota(s) fiscal(is)'],
-            ],
+            'titulo' => 'Projeto #' . $p['id'], 'projeto' => $p,
+            'linhas' => DocumentoLinhaPresenter::linhas(
+                $p, $this->documentos->byProjeto((int) $id), $this->arquivos->countsByProjeto((int) $id), $relatorios
+            ),
         ]));
     }
 

@@ -1,44 +1,40 @@
 <?php
 use App\Domain\ConciliacaoCalculator;
 use App\Domain\Money;
+use App\Core\View;
 
 $base = '/projetos/' . (int) $projeto['id'];
-$desatualizado = $final && (int) $final['desatualizado'] === 1;
 $m = fn (int $v) => e(Money::format($v));
 $diferenca = $totais['conciliacao'] !== 0;
 $v = fn (string $k) => e($config[$k] ?? '');
 $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money::input((int) $config[$k])) : e($config[$k] ?? '');
 ?>
-<p><a href="<?= e($base) ?>#doc-15">← Voltar ao projeto #<?= (int) $projeto['id'] ?></a></p>
-<div class="barra"><h1>15 — Conciliação bancária</h1></div>
-
-<div class="caixa">
-    <?php if (!$final): ?>
-        <span class="tag vazio">PDF não gerado</span>
-    <?php elseif ($desatualizado): ?>
-        <span class="tag aviso-tag">Desatualizado</span> Os dados (ou o balancete) mudaram desde a última geração.
-    <?php else: ?>
-        <span class="tag ok">PDF gerado</span> <small><?= e(format_bytes((int) $final['tamanho'])) ?> · <?= e($final['atualizado_em']) ?></small>
-    <?php endif; ?>
-    <div class="acoes" style="margin-top:.6rem">
-        <form method="post" action="<?= e($base) ?>/conciliacao/gerar"><?= csrf_field() ?><button class="btn" type="submit">Gerar PDF</button></form>
-        <?php if ($final): ?>
-            <a href="<?= e($base) ?>/documentos/15/baixar?ver=1" target="_blank" rel="noopener">Ver</a>
-            <a href="<?= e($base) ?>/documentos/15/baixar">Baixar</a>
-        <?php endif; ?>
+<?= View::render("partes/trilha", ["projeto" => $projeto, "ancora" => "#doc-15", "itens" => [["15 Conciliação bancária"]]], false) ?>
+<div class="barra projeto-cab">
+    <div class="projeto-titulo">
+        <h1>15 — Conciliação bancária</h1>
+        <p class="projeto-sub"><?= e($projeto["municipio_nome"]) ?> - <?= e($projeto["municipio_uf"]) ?> · Projeto #<?= (int) $projeto["id"] ?></p>
+        <ul class="atalhos" aria-label="Seções desta página">
+            <li><a href="#receitas">1. Receitas</a></li>
+            <li><a href="#notas">2. Notas fiscais</a></li>
+            <li><a href="#dados">3. Devoluções, extrato e textos</a></li>
+        </ul>
     </div>
 </div>
 
-<h2>Resumo</h2>
-<table class="compacta">
-    <tbody>
-        <tr><td>Total de receitas</td><td class="num"><?= $m($totais['receitas']) ?></td></tr>
-        <tr><td>Total de despesas (soma do bruto das notas)</td><td class="num"><?= $m($totais['despesas']) ?></td></tr>
-        <tr><td><strong>Saldo (receitas − despesas)</strong></td><td class="num"><strong><?= $m($totais['saldo']) ?></strong></td></tr>
-        <tr><td>Saldo em conta bancária (corrente + aplicação)</td><td class="num"><?= $m($totais['bancario']) ?></td></tr>
-        <tr><td><strong>Conciliação (saldo − bancário)</strong></td><td class="num"><strong><?= $m($totais['conciliacao']) ?></strong></td></tr>
-    </tbody>
-</table>
+<?= View::render("partes/pdf", [
+    "final" => $final, "gerar" => $base . "/conciliacao/gerar", "baixar" => $base . "/documentos/15/baixar",
+    "textos" => ["vazio" => "PDF não gerado", "gerado" => "PDF gerado", "desatualizado" => "Os dados (ou o balancete) mudaram desde a última geração."],
+], false) ?>
+
+<h2 class="so-leitor">Resumo</h2>
+<div class="kpis">
+    <div class="kpi"><span class="kpi-rotulo">Total de receitas</span><span class="kpi-valor"><?= $m($totais["receitas"]) ?></span></div>
+    <div class="kpi"><span class="kpi-rotulo">Total de despesas (bruto das notas)</span><span class="kpi-valor"><?= $m($totais["despesas"]) ?></span></div>
+    <div class="kpi"><span class="kpi-rotulo">Saldo (receitas − despesas)</span><span class="kpi-valor"><?= $m($totais["saldo"]) ?></span></div>
+    <div class="kpi"><span class="kpi-rotulo">Saldo em conta (corrente + aplicação)</span><span class="kpi-valor"><?= $m($totais["bancario"]) ?></span></div>
+    <div class="kpi <?= $diferenca ? 'erro' : 'ok' ?>"><span class="kpi-rotulo">Conciliação (saldo − bancário)</span><span class="kpi-valor"><?= $m($totais["conciliacao"]) ?></span><span class="kpi-nota"><?= $diferenca ? "Não fechou" : "Fechou" ?></span></div>
+</div>
 <?php if ($diferenca): ?>
     <p class="aviso">A conciliação <strong>não fechou</strong>: diferença de R$ <?= $m($totais['conciliacao']) ?>.
     <?php if ($totais['devolucoes'] > 0): ?>
@@ -47,6 +43,7 @@ $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money:
     </p>
 <?php endif; ?>
 
+<section class="cartao secao">
 <h2 id="receitas">1. Receitas <small>(calculadas a partir do balancete, editáveis)</small></h2>
 <form method="post" action="<?= e($base) ?>/conciliacao/receitas" class="form-larga">
     <?= csrf_field() ?>
@@ -72,18 +69,20 @@ $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money:
         </tbody>
         <tfoot><tr><th colspan="3">Total de receitas</th><th class="num"><?= $m($totais['receitas']) ?></th><th></th></tr></tfoot>
     </table></div>
-    <div class="botoes" style="margin-top:.6rem"><button class="btn" type="submit">Salvar receitas</button></div>
+    <div class="botoes"><button class="btn" type="submit">Salvar receitas</button></div>
 </form>
+</section>
 <?php foreach ($receitas as $i => $r): if ($r['alterado']): ?>
     <form method="post" id="restaurar-<?= $i ?>" action="<?= e($base) ?>/conciliacao/receitas/restaurar"><?= csrf_field() ?><input type="hidden" name="chave" value="<?= e($r['chave']) ?>"></form>
 <?php endif; endforeach; ?>
 
-<div class="barra" id="notas" style="margin-top:2rem">
-    <h2 style="margin:0">2. Notas fiscais</h2>
+<section class="cartao secao" id="notas">
+<div class="secao-cab">
+    <h2>2. Notas fiscais</h2>
     <a class="btn" href="<?= e($base) ?>/conciliacao/notas/novo">Nova nota fiscal</a>
 </div>
 <?php if (!$notas): ?>
-    <p class="aviso">Nenhuma nota fiscal. Cada nota gera um bloco com bruto, líquido e retenções.</p>
+    <div class="estado-vazio"><strong>Nenhuma nota fiscal.</strong> Cada nota gera um bloco com bruto, líquido e retenções.</div>
 <?php else: ?>
 <div class="rolagem"><table>
     <thead><tr><th>Nota fiscal</th><th class="num">Bruto</th><th class="num">IR</th><th class="num">ISS</th><th class="num">INSS</th><th class="num">Outros</th><th class="num">Líquido</th><th></th></tr></thead>
@@ -106,8 +105,9 @@ $vm = fn (string $k) => isset($config[$k]) && is_numeric($config[$k]) ? e(Money:
     <tfoot><tr><th>Total (bruto)</th><th class="num"><?= $m($totais['despesas']) ?></th><th colspan="6"></th></tr></tfoot>
 </table></div>
 <?php endif; ?>
+</section>
 
-<h2 id="dados" style="margin-top:2rem">3. Devoluções, extrato bancário e textos</h2>
+<h2 id="dados">3. Devoluções, extrato bancário e textos</h2>
 <form method="post" action="<?= e($base) ?>/conciliacao/config" class="form">
     <?= csrf_field() ?>
     <fieldset>

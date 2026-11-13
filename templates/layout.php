@@ -17,13 +17,16 @@ $mensagens = \App\Core\Session::pullFlash();
 </head>
 <body>
 <a class="pular-link" href="#conteudo">Ir para o conteúdo</a>
-<header class="topo">
+<div class="app">
+<header class="lateral">
     <a class="marca" href="/">Prestação de Contas</a>
     <nav aria-label="Principal">
         <a href="/projetos"<?= $projetosAtivo ? ' aria-current="page"' : '' ?>>Projetos</a>
         <a href="/municipios"<?= $ativo('/municipios') ? ' aria-current="page"' : '' ?>>Municípios</a>
     </nav>
+    <a class="lateral-rodape" href="/guia-visual">Guia visual</a>
 </header>
+<div class="app-principal">
 <main class="conteudo" id="conteudo" tabindex="-1">
     <?php if ($mensagens): ?>
         <div class="alertas" role="region" aria-label="Mensagens">
@@ -40,5 +43,7 @@ $mensagens = \App\Core\Session::pullFlash();
 <footer class="rodape">
     Prestação de Contas · uso local · <a href="/guia-visual">Guia visual</a>
 </footer>
+</div>
+</div>
 </body>
 </html>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 use App\Controllers\BalanceteController;
 use App\Controllers\ConciliacaoController;
 use App\Controllers\DocumentoController;
+use App\Controllers\BensController;
+use App\Controllers\ZipController;
 use App\Controllers\FisicoFinanceiroController;
 use App\Controllers\JuncaoController;
 use App\Controllers\MunicipioController;
@@ -18,6 +20,7 @@ use App\Core\View;
 use App\Repositories\ArquivoRepository;
 use App\Repositories\ConciliacaoRepository;
 use App\Repositories\DocumentoRepository;
+use App\Repositories\BensRepository;
 use App\Repositories\FisicoFinanceiroRepository;
 use App\Repositories\LancamentoRepository;
 use App\Repositories\MunicipioRepository;
@@ -28,6 +31,8 @@ use App\Services\ConciliacaoService;
 use App\Services\ConversionService;
 use App\Services\DocumentoService;
 use App\Services\FileStorage;
+use App\Services\BensService;
+use App\Services\ZipService;
 use App\Services\FisicoFinanceiroService;
 use App\Services\JuncaoService;
 use App\Services\PdfMergeService;
@@ -78,8 +83,14 @@ function build_router(): Router
         new ProjetoRepository($pdo), $concRepo, new DocumentoRepository($pdo),
         new ConciliacaoService($concRepo, new OverrideRepository($pdo), $lancRepo, new DocumentoRepository($pdo), new ProjetoRepository($pdo), $storage, new ReportPdfService()),
     );
+    $bensRepo = new BensRepository($pdo);
+    $bens = new BensController(
+        new ProjetoRepository($pdo), $bensRepo, new DocumentoRepository($pdo),
+        new BensService($bensRepo, new DocumentoRepository($pdo), new ProjetoRepository($pdo), $storage, new ReportPdfService()),
+    );
+    $zip = new ZipController(new ProjetoRepository($pdo), new ZipService(new DocumentoRepository($pdo), new ProjetoRepository($pdo), $storage));
     $mun = new MunicipioController(new MunicipioRepository($pdo));
-    $proj = new ProjetoController(new ProjetoRepository($pdo), new MunicipioRepository($pdo), new DocumentoRepository($pdo), $docService, new ArquivoRepository($pdo), new LancamentoRepository($pdo), new FisicoFinanceiroRepository($pdo), new ConciliacaoRepository($pdo));
+    $proj = new ProjetoController(new ProjetoRepository($pdo), new MunicipioRepository($pdo), new DocumentoRepository($pdo), $docService, new ArquivoRepository($pdo), new LancamentoRepository($pdo), new FisicoFinanceiroRepository($pdo), new ConciliacaoRepository($pdo), $bensRepo);
 
     $router->get('/', fn (Request $r) => Response::redirect('/projetos'));
     $router->get('/guia-visual', fn (Request $r) => Response::html(View::render('guia_visual', ['titulo' => 'Guia visual'])));
@@ -98,6 +109,7 @@ function build_router(): Router
     $router->get('/projetos/{id}/editar', $proj->editar(...));
     $router->post('/projetos/{id}', $proj->atualizar(...));
     $router->post('/projetos/{id}/excluir', $proj->excluir(...));
+    $router->get('/projetos/{id}/zip', $zip->baixar(...));
 
     $router->post('/projetos/{id}/documentos/{codigo}/enviar', $doc->enviar(...));
     $router->post('/projetos/{id}/documentos/{codigo}/remover', $doc->remover(...));
@@ -131,6 +143,17 @@ function build_router(): Router
     $router->post("$f/linhas/{lid}", $fisico->atualizar(...));
     $router->post("$f/linhas/{lid}/excluir", $fisico->excluir(...));
     $router->post("$f/linhas/{lid}/mover", $fisico->mover(...));
+
+    $rb = '/projetos/{id}/relacao-de-bens';
+    $router->get($rb, $bens->index(...));
+    $router->post("$rb/gerar", $bens->gerar(...));
+    $router->post("$rb/titulo", $bens->titulo(...));
+    $router->get("$rb/bens/novo", $bens->novo(...));
+    $router->post("$rb/bens", $bens->criar(...));
+    $router->get("$rb/bens/{bid}/editar", $bens->editar(...));
+    $router->post("$rb/bens/{bid}", $bens->atualizar(...));
+    $router->post("$rb/bens/{bid}/excluir", $bens->excluir(...));
+    $router->post("$rb/bens/{bid}/mover", $bens->mover(...));
 
     $c = '/projetos/{id}/conciliacao';
     $router->get($c, $conciliacao->index(...));

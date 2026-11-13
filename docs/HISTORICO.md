@@ -50,7 +50,11 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 
 ## 3. Estado atual (2026-11-12)
 
-**Testes: 247 passando (720 asserções).** Rodar com `composer test`.
+**Testes: 328 — todos passando neste Windows, nenhum pulado** (2026-11-12, com Ghostscript 10.08.0 e LibreOffice 26.8.3). Rodar com `composer test`.
+
+> **Windows (2026-11-12):** Ghostscript 10.08.0 (instalador oficial; **não está no `winget`**) e LibreOffice 26.8.3
+> (`winget`) instalados neste computador; o sistema os encontra sozinho (`src/Services/Ferramentas.php`). Com eles, a
+> suíte inteira passa aqui. Em outro computador sem as ferramentas, junção, PNG e PowerPoint não funcionam (README).
 
 ### 3.1 Sistema (plano `plans/prestacao-de-contas-plan.md`)
 
@@ -64,11 +68,14 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 | 6 | **Balancete** (01): lançamentos, totais, PDF | ✔ |
 | 7 | **Físico-financeiro** (22): várias metas, valores digitados, PDF | ✔ |
 | 8 | **Conciliação bancária** (15): receitas do balancete (editáveis), notas digitadas, PDF | ✔ |
-| **9** | **Relação de bens** (09) | **⏳ pendente** (falta decisão — ver §9) |
-| **10** | **Entrega: ZIP numerado** com todos os PDFs (RF-21) | **⏳ pendente** |
-| 11 | Validação final contra os critérios de aceitação | ⏳ pendente |
+| 9 | **Relação de bens** (09): várias linhas, tudo digitado, título editável, total (`specs/relacao-de-bens.md`) | ✔ |
+| 10 | **Entrega: ZIP numerado** (`specs/zip-prestacao.md`): nomes do catálogo, aviso de desatualizados/não gerados | ✔ |
+| 11 | Validação final: CA-01 a CA-09 atendidos (`docs/VALIDACAO-FINAL.md`) | ✔ |
 
-> O download **individual** de cada PDF já funciona. O **ZIP** (Etapa 10) ainda **não** existe.
+> **Etapas 1 a 11 concluídas.** O sistema também roda no Windows (`specs/suporte-windows.md`).
+> **Depois da Etapa 11:** balancete com o **formulário de novo lançamento na própria tela**
+> (`specs/balancete-lancamento-na-tela.md`): lança vendo a lista e os totais; a linha nova fica destacada; o
+> "Salvar e adicionar outro" saiu; a edição continua em página própria. Aprovado pelo usuário.
 
 ### 3.2 Melhoria visual da interface (iniciada depois da Etapa 8)
 
@@ -76,8 +83,9 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 |---|---|---|
 | Levantamento visual | (relatório na conversa) | ✔ concluído |
 | **Fundação visual** | `specs/melhoria-visual-fundacao.md` + `plans/melhoria-visual-fundacao-plan.md` | ✔ **implementada**; você conferiu e não achou nada estranho |
-| **Tela do Projeto** | `specs/melhoria-visual-tela-projeto.md` | spec **aprovada**; **plano técnico ainda não escrito** |
-| Demais telas | — | uma por vez, cada uma com spec → plano → aprovação |
+| **Tela do Projeto** | `specs/melhoria-visual-tela-projeto.md` (v1.3) + `plans/melhoria-visual-tela-projeto-plan.md` | ✔ **implementada**; **falta você conferir no navegador** (desktop, 360 px, teclado) |
+| **Redesenho (fase 3)**: menu lateral claro + Municípios | `specs/redesenho-layout-municipios.md` + plano | ✔ **concluído e aprovado** ("ficou perfeito, dessa maneira mesmo que quero seguir"): é o **padrão visual** das próximas telas. O usuário achou que o sistema "ainda tinha cara antiga" após a fase 2 e pediu redesenho **tela por tela**, começando por Municípios (piloto do estilo) |
+| **Demais telas** (todas) | `specs/melhoria-visual-demais-telas.md` + `plans/melhoria-visual-demais-telas-plan.md` | ✔ **implementadas** numa spec só (escolha do usuário); **falta você conferir no navegador** |
 
 ---
 
@@ -90,7 +98,8 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
    (inclusive visual, renderizando os PDFs em imagem) achou defeitos que os testes não pegavam; foram
    corrigidos e passaram a ter teste de regressão.
 4. **Melhoria visual:** levantamento → fundação visual (tokens de design, componentes, layout, página
-   `/guia-visual`) → tela do Projeto (spec aprovada).
+   `/guia-visual`) → tela do Projeto (spec, plano e implementação em 2026-11-12: apresentador
+   `src/Presenters/DocumentoLinhaPresenter.php`, novo `show.php` e seção 8 do `app.css`).
 
 ---
 
@@ -195,26 +204,25 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 
 ## 9. Próximos passos (ordem sugerida)
 
-1. **Tela do Projeto (melhoria visual)** — escrever o **plano técnico** (`plans/melhoria-visual-tela-projeto-plan.md`),
-   aprovar, autorizar e implementar. Rascunho do plano já conversado:
-   - criar um **apresentador** (`src/Presenters/`) que calcula situação, detalhe e ação de cada uma das 25
-     linhas (hoje essa lógica está repetida dentro de `templates/projetos/show.php`), com testes;
-   - reescrever `templates/projetos/show.php`: cabeçalho com o objeto, cartão de dados, lista com 4 colunas,
-     envio recolhido em `<details>`, zona de perigo para "Excluir";
-   - nova seção no `app.css` e modo "cartões" em tela estreita (≤ 640 px);
-   - **testes que leem o HTML da tela e precisam continuar passando:** 25× `class="tag vazio"`; 1×
-     `class="tag ok"` após um envio; textos "Não gerado", "Desatualizado", "Convertido", "Abrir balancete",
-     "Abrir físico-financeiro", "Abrir conciliação", "3 lançamento(s)", "1 linha(s)", "1 nota(s) fiscal(is)",
-     `image/png,.png`, `.pptx`. O resumo **não** pode usar a classe `tag ok`.
-   - decisões em aberto: **DEC-P1** (resumo "N de 25") e **DEC-P3** (textos provisórios).
-2. **Etapa 9 — Relação de bens (doc. 09).** Falta a última parte da DEC-02: na planilha é **uma linha**
-   ("1 — AQUISIÇÃO DE UM VEÍCULO ÔNIBUS", valor = total − rendimentos). Perguntar: pode ter **várias linhas**?
-   o valor é calculado e editável? quais campos?
-3. **Etapa 10 — ZIP** com todos os PDFs existentes, nomeados e numerados (`01-balancete.pdf`…), e
-   mensagem quando não houver documento (EX-05).
-4. **Etapa 11 — Validação final** contra os critérios CA-01 a CA-09 e relatório de pendências.
-5. Demais telas da melhoria visual, uma por vez: lista de projetos → municípios e formulários →
-   balancete → físico-financeiro → conciliação → junção → erros.
+1. **Conferir no navegador a tela do Projeto e as demais telas** (falta só isso). A tela do Projeto já foi vista e aprovada ("está ok").
+   Nas demais, olhar também: arrastar na junção, preenchimento automático no projeto e fonte automática no lançamento.
+   Na tela do Projeto: desktop, largura de 360 px (F12 → modo dispositivo),
+   Tab pela lista, abrir "Enviar arquivo ▾" e enviar, voltar para a linha (`#doc-XX`) sem ficar sob a mensagem.
+   Se algo estiver estranho, ajustar no `app.css` (seção 8). Plano B da âncora: `scroll-padding-top` via
+   `html:has(.docs)`.
+2. ~~Etapa 9 — Relação de bens~~ **feita** (2026-11-12). Decisões: várias linhas, **tudo digitado** (na planilha o
+   valor vinha do físico-financeiro: realizado até o período − rendimentos; o usuário preferiu digitar), título
+   editável, total sempre. Falta o usuário conferir o PDF.
+3. ~~Etapa 10 — ZIP~~ **feita** (2026-11-12): botão "Baixar prestação (ZIP)" na tela do Projeto. Falta o usuário abrir
+   o ZIP no Windows.
+4. ~~Etapa 11 — Validação final~~ **feita** (2026-11-12): `docs/VALIDACAO-FINAL.md` (CA-01 a CA-09 ✔, pendências na §5).
+5. **Redesenho tela por tela (fase 3)**: Municípios feito (piloto, aprovado); **lista de Projetos aprovada**
+   (`specs/redesenho-lista-projetos.md`). **Pausado a pedido do usuário** para voltar às etapas técnicas (9–11).
+   Ao retomar: **CSS em 39,2 KB, quase no limite de 40 KB**; decidir antes da próxima tela entre limpar as regras
+   antigas (recomendado) ou subir o limite (ver §10). Próximas: escolher com o usuário (sugestão: tela do Projeto → formulários → balancete/conciliação/físico → junção). Cada uma com spec curta.
+   Lição: um teste que já falha por ambiente (ex.: classes do `DesignSystemTest`) **esconde regressões**; conferir o
+   conteúdo da falha, não só a contagem.
+6. ~~Demais telas da melhoria visual~~ (feito em 2026-11-12; peças comuns em `templates/partes/`: `trilha.php` e `pdf.php`).
 6. Reavaliar o ponto das **devoluções** na conciliação (§6) e as demais premissas provisórias.
 
 ---
@@ -229,7 +237,12 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
   2026-11-12. `storage/` e `planilha/` (dados reais) ficam **fora** de propósito; o commit usa o e-mail pessoal
   do usuário. Antes de publicar, uma verificação de dados pessoais achou o nome da empresa no `composer.json`
   (pacote `ixcsoft/prestacao`), trocado por `pedroniec/prestacao`.
+- **Tamanho do CSS:** `app.css` em 39,2 KB (limite do teste: 40 KB, elevado na DEC-L3). Ainda há regras da
+  fundação que as telas redesenhadas não usam mais (ex.: `.topo`, mantidas por um teste de nomes legados).
 - Os PDFs não são idênticos pixel a pixel à planilha (decisão do usuário: "muito próximo").
+- **Neste computador Windows** (2026-11-12): faltava `vendor/` (rodar `composer install`); Ghostscript e LibreOffice
+  foram instalados (ver nota no §3). A **porta 8000 está ocupada por outro projeto** (ReservaPlay): rode em outra
+  porta (README, "Porta ocupada?").
 
 ---
 
@@ -242,7 +255,10 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 | `specs/prestacao-de-contas.md` | Spec do sistema (v1.8): requisitos, regras, decisões e histórico |
 | `plans/prestacao-de-contas-plan.md` | Plano técnico do sistema (11 etapas) |
 | `specs/melhoria-visual-fundacao.md` e `plans/melhoria-visual-fundacao-plan.md` | Fundação visual |
-| `specs/melhoria-visual-tela-projeto.md` | Spec da tela do Projeto (aprovada) |
+| `specs/melhoria-visual-tela-projeto.md` e `plans/melhoria-visual-tela-projeto-plan.md` | Tela do Projeto (implementada) |
 | `specs/SPEC_TEMPLATE.md`, `plans/PLAN_TEMPLATE.md` | Modelos de documento |
-| `README.md` | Como instalar e executar |
+| `docs/VALIDACAO-FINAL.md` | Validação final (Etapa 11): critérios, evidências e pendências |
+| `specs/relacao-de-bens.md`, `specs/zip-prestacao.md`, `specs/suporte-windows.md` (+ planos) | Etapas 9, 10 e suporte ao Windows |
+| `specs/redesenho-*.md` (+ planos) | Redesenho visual fase 3 (menu lateral, Municípios, lista de Projetos) |
+| `README.md` | Como instalar e executar | (inclui Windows)
 | `docs/GUIA-OUTRO-COMPUTADOR.md` | Como retomar o trabalho em outro computador e chamar o Claude |

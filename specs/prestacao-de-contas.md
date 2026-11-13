@@ -109,12 +109,14 @@ montagem manual dos PDFs.
   corrente e da aplicação numa data); (5) conciliação = saldo − saldo bancário. A coluna "soma"
   é acumulada. Título e cabeçalho da coluna do extrato são textos editáveis (DEC-07).
 - RF-16: **Relação de bens (doc. 9)** — equivalente à aba "Rel de Bens construídos":
-  relação de bens adquiridos/produzidos/construídos com descrição e valor.
+  relação de bens adquiridos/produzidos/construídos com descrição e valor. **Várias linhas**, descrição e valor
+  **digitados** (sem cálculo), título do PDF editável (padrão "RELAÇÃO DE BENS ADQUIRIDOS") e linha de total.
+  Detalhes em `specs/relacao-de-bens.md`.
 - RF-17: Cada relatório gera um **PDF com visual muito próximo ao da planilha atual**
   (mesmas colunas, ordem, cabeçalho e rodapé com local, data e assinaturas).
-- RF-18: Os valores dos relatórios 15 e 9 são **calculados a partir dos lançamentos**
+- RF-18: Os valores do relatório 15 são **calculados a partir dos lançamentos**
   do balancete e dos demais dados do projeto, mas **podem ser sobrescritos
-  manualmente** (o relatório 22 não é calculado: seus valores são digitados). Campos sobrescritos devem ser sinalizados visualmente e deve ser possível
+  manualmente** (os relatórios 22 e 9 não são calculados: seus valores são digitados; para o 9, decisão de 2026-11-12). Campos sobrescritos devem ser sinalizados visualmente e deve ser possível
   restaurar o valor calculado.
 - RF-19: Os dados do cabeçalho e as assinaturas vêm do cadastro do projeto, sem redigitação.
 
@@ -122,7 +124,7 @@ montagem manual dos PDFs.
 
 - RF-20: Baixar individualmente o PDF de cada documento.
 - RF-21: Baixar um **ZIP** com todos os PDFs existentes do projeto, nomeados e numerados
-  conforme a lista de documentos.
+  conforme a lista de documentos. Desatualizados entram com aviso prévio; detalhes em `specs/zip-prestacao.md`.
 
 ## 5. Requisitos não funcionais
 
@@ -223,17 +225,17 @@ montagem manual dos PDFs.
 
 ## 10. Critérios de aceitação
 
-- [ ] CA-01: Cadastrar um município e um projeto, com o cabeçalho e as assinaturas
+- [x] CA-01: Cadastrar um município e um projeto, com o cabeçalho e as assinaturas
       aparecendo automaticamente nos relatórios.
-- [ ] CA-02: Todos os 25 documentos aparecem em qualquer projeto, sem nenhum obrigatório.
-- [ ] CA-03: Juntar vários PDFs com ordem definida pelo usuário e baixar o resultado.
-- [ ] CA-04: Fazer upload, substituir e remover um PDF pronto.
-- [ ] CA-05: Converter um PowerPoint e um PNG em PDF.
-- [ ] CA-06: Lançar o balancete do exemplo (`planilha/…xlsx`) e obter os mesmos totais da
+- [x] CA-02: Todos os 25 documentos aparecem em qualquer projeto, sem nenhum obrigatório.
+- [x] CA-03: Juntar vários PDFs com ordem definida pelo usuário e baixar o resultado.
+- [x] CA-04: Fazer upload, substituir e remover um PDF pronto.
+- [x] CA-05: Converter um PowerPoint e um PNG em PDF.
+- [x] CA-06: Lançar o balancete do exemplo (`planilha/…xlsx`) e obter os mesmos totais da
       planilha em todos os relatórios.
-- [ ] CA-07: Sobrescrever um valor calculado, vê-lo sinalizado e restaurá-lo.
-- [ ] CA-08: PDFs dos 4 relatórios com visual muito próximo ao da planilha atual.
-- [ ] CA-09: Baixar cada PDF individual e o ZIP com nomes numerados.
+- [x] CA-07: Sobrescrever um valor calculado, vê-lo sinalizado e restaurá-lo.
+- [x] CA-08: PDFs dos 4 relatórios com visual muito próximo ao da planilha atual.
+- [x] CA-09: Baixar cada PDF individual e o ZIP com nomes numerados.
 
 ## 11. Restrições técnicas
 
@@ -258,11 +260,11 @@ montagem manual dos PDFs.
 ## 13. Decisões pendentes
 
 - [ ] DEC-01: Aba "Dem Rec x Desp" — confirmar futuramente se é entregue e se deve entrar.
-- [ ] DEC-02: Detalhar os campos de cada relatório. *Balancete: decidido (ver RF-13, RN-08 e RN-09). Físico-financeiro: decidido (ver RF-14 e RN-06). Conciliação: decidido (ver RF-15 e RN-05). Pendente: itens da relação de bens.*
+- [x] DEC-02: Detalhar os campos de cada relatório. *Balancete: decidido (ver RF-13, RN-08 e RN-09). Físico-financeiro: decidido (ver RF-14 e RN-06). Conciliação: decidido (ver RF-15 e RN-05). Relação de bens: decidido (ver RF-16 e `specs/relacao-de-bens.md`).*
 - [ ] DEC-03: Formato aceito para o CNO (doc. 17): somente PDF ou outros. *Provisório na implementação: somente PDF (configurável em `DocumentCatalog::extensoesUpload`).*
 - [ ] DEC-04: Aceitar imagens (JPG/PNG) na junção de PDFs, além de PDFs. *Provisório: somente PDF.*
 - [ ] DEC-05: Tamanho máximo de arquivo e política de backup dos dados. *Provisório: 50 MB por arquivo; backup = copiar a pasta `storage/` (ver README).*
-- [ ] DEC-06: Padrão de nomes dos arquivos no ZIP.
+- [x] DEC-06: Padrão de nomes dos arquivos no ZIP. *Decidido (2026-11-12): os nomes do catálogo, iguais ao download individual (`01-balancete.pdf`…). Ver `specs/zip-prestacao.md`.*
 - [ ] DEC-08: Formatos de PowerPoint aceitos no acervo fotográfico (doc. 8). *Provisório: somente .pptx (não .ppt antigo).*
 - [x] DEC-07: Título variável da conciliação — campo de texto livre (decidido na Etapa 8).
 
@@ -279,3 +281,6 @@ montagem manual dos PDFs.
 | 1.6 | Balancete (RF-13/RF-17) implementado. Acrescentada ao PDF a linha "SALDO (RECEITA - DESPESA)", ausente na planilha mas prevista no seu título; lançamentos podem ser reordenados | 2026-11-12 |
 | 1.7 | Físico-financeiro (RF-14, RN-06, RF-18) implementado conforme decisão do usuário: várias metas/etapas, financeiro sempre digitado, "no período" e "até o período" separados; deixa de ser derivado do balancete | 2026-11-12 |
 | 1.8 | Conciliação bancária (RF-15, RN-05, DEC-07) implementada: receitas do balancete editáveis (com sobrescrita/restauração), notas fiscais digitadas, total de despesas = soma do bruto das notas (corrige defeito da planilha), devoluções fora do total, cabeçalho padrão, só o Prefeito assina | 2026-11-12 |
+| 1.9 | Relação de bens (RF-16, DEC-02) decidida: várias linhas, descrição e valor digitados, título editável, total sempre. RF-18 deixa de valer para o doc. 9 | 2026-11-12 |
+| 1.10 | ZIP (RF-21, EX-05, DEC-06) implementado: nomes do catálogo, desatualizados incluídos com aviso, "não gerados" avisados | 2026-11-12 |
+| 1.11 | **Validação final (Etapa 11)**: CA-01 a CA-09 atendidos, 322/322 testes no Windows. Relatório em `docs/VALIDACAO-FINAL.md` | 2026-11-12 |

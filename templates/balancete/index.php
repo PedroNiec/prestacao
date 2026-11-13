@@ -2,38 +2,50 @@
 use App\Domain\BalanceteCalculator;
 use App\Domain\Dates;
 use App\Domain\Money;
+use App\Core\View;
 
 $base = '/projetos/' . (int) $projeto['id'];
-$desatualizado = $final && (int) $final['desatualizado'] === 1;
 $o = $totais['origens'];
+$novoId = (int) ($novoId ?? 0);
 ?>
-<p><a href="<?= e($base) ?>#doc-01">← Voltar ao projeto #<?= (int) $projeto['id'] ?></a></p>
-<div class="barra">
-    <h1>01 — Balancete</h1>
-    <a class="btn" href="<?= e($base) ?>/balancete/lancamentos/novo">Novo lançamento</a>
-</div>
-<p>Receita é o que <strong>entrou</strong> na conta; despesa é o que <strong>saiu</strong>. Retenções (IRRF, ISS, INSS) são lançadas como linhas de despesa.</p>
-
-<div class="caixa">
-    <?php if (!$final): ?>
-        <span class="tag vazio">PDF não gerado</span>
-    <?php elseif ($desatualizado): ?>
-        <span class="tag aviso-tag">Desatualizado</span> Os lançamentos mudaram desde a última geração.
-    <?php else: ?>
-        <span class="tag ok">PDF gerado</span> <small><?= e(format_bytes((int) $final['tamanho'])) ?> · <?= e($final['atualizado_em']) ?></small>
-    <?php endif; ?>
-    <div class="acoes" style="margin-top:.6rem">
-        <form method="post" action="<?= e($base) ?>/balancete/gerar"><?= csrf_field() ?><button class="btn" type="submit">Gerar PDF</button></form>
-        <?php if ($final): ?>
-            <a href="<?= e($base) ?>/documentos/01/baixar?ver=1" target="_blank" rel="noopener">Ver</a>
-            <a href="<?= e($base) ?>/documentos/01/baixar">Baixar</a>
-        <?php endif; ?>
+<?= View::render("partes/trilha", ["projeto" => $projeto, "ancora" => "#doc-01", "itens" => [["01 Balancete"]]], false) ?>
+<div class="barra projeto-cab">
+    <div class="projeto-titulo">
+        <h1>01 — Balancete</h1>
+        <p class="projeto-sub"><?= e($projeto["municipio_nome"]) ?> - <?= e($projeto["municipio_uf"]) ?> · Projeto #<?= (int) $projeto["id"] ?></p>
     </div>
+    <a class="btn" href="#novo-lancamento">Novo lançamento</a>
 </div>
+<p class="dica">Receita é o que <strong>entrou</strong> na conta; despesa é o que <strong>saiu</strong>. Retenções (IRRF, ISS, INSS) são lançadas como linhas de despesa.</p>
+
+<?= View::render("partes/pdf", [
+    "final" => $final, "gerar" => $base . "/balancete/gerar", "baixar" => $base . "/documentos/01/baixar",
+    "textos" => ["vazio" => "PDF não gerado", "gerado" => "PDF gerado", "desatualizado" => "Os lançamentos mudaram desde a última geração."],
+], false) ?>
+
+<section class="secao" id="novo-lancamento" aria-labelledby="novo-lancamento-titulo">
+<form method="post" action="<?= e($base) ?>/balancete/lancamentos" class="form form-cheia" id="form-lancamento">
+    <h2 id="novo-lancamento-titulo">Novo lançamento</h2>
+    <?= csrf_field() ?>
+    <?= View::render('balancete/_campos', ['l' => $novoForm, 'origens' => BalanceteCalculator::ORIGENS], false) ?>
+    <div class="botoes"><button class="btn" type="submit">Salvar lançamento</button></div>
+</form>
+</section>
+
+<?php if ($lancamentos): ?>
+<div class="kpis">
+    <div class="kpi"><span class="kpi-rotulo">Receita total</span><span class="kpi-valor"><?= e(Money::format($totais["receita"])) ?></span></div>
+    <div class="kpi"><span class="kpi-rotulo">Despesa total</span><span class="kpi-valor"><?= e(Money::format($totais["despesa"])) ?></span></div>
+    <div class="kpi"><span class="kpi-rotulo">Saldo (receita − despesa)</span><span class="kpi-valor"><?= e(Money::format($totais["saldo"])) ?></span></div>
+</div>
+<?php endif; ?>
 
 <h2>Lançamentos (<?= count($lancamentos) ?>)</h2>
 <?php if (!$lancamentos): ?>
-    <p class="aviso">Nenhum lançamento ainda. Comece lançando a transferência recebida (receita).</p>
+    <div class="estado-vazio">
+        <strong>Nenhum lançamento ainda.</strong>
+        Comece lançando a transferência recebida (receita) no formulário acima.
+    </div>
 <?php else: ?>
 <div class="rolagem">
 <table>
@@ -43,9 +55,9 @@ $o = $totais['origens'];
     </tr></thead>
     <tbody>
     <?php foreach ($lancamentos as $i => $l): $lid = (int) $l['id']; ?>
-        <tr id="l<?= $lid ?>">
+        <tr id="l<?= $lid ?>"<?= $lid === $novoId ? ' class="linha-nova"' : '' ?>>
             <td><?= e($l['boletim_parcela']) ?></td>
-            <td><?= e($l['descricao']) ?></td>
+            <td><?= e($l['descricao']) ?><?php if ($lid === $novoId): ?> <span class="tag info">novo</span><?php endif; ?></td>
             <td><?= e($l['cnpj']) ?></td>
             <td><?= e($l['nota_fiscal']) ?></td>
             <td><?= e($l['nota_empenho']) ?></td>
@@ -71,6 +83,7 @@ $o = $totais['origens'];
 </table>
 </div>
 
+<section class="cartao secao">
 <h2>Totais por origem</h2>
 <table class="compacta">
     <thead><tr><th>Origem</th><th class="num">Receita</th><th class="num">Despesa</th></tr></thead>
@@ -80,4 +93,6 @@ $o = $totais['origens'];
     <?php endforeach; ?>
     </tbody>
 </table>
+</section>
 <?php endif; ?>
+<script src="/assets/lancamento-form.js"></script>

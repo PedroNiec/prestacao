@@ -31,9 +31,14 @@ final class BalanceteController
             return $erro;
         }
         $dados = $this->service->dados((int) $id);
+        // "Novo lançamento" na própria tela (specs/balancete-lancamento-na-tela.md): após erro, volta o que foi digitado;
+        // senão, o formulário vem limpo com os padrões.
+        $novoForm = Session::old() ?: ['tipo' => 'despesa', 'origem' => 'convenio', 'fonte' => '1'];
         return Response::html(View::render('balancete/index', $dados + [
             'titulo' => 'Balancete',
             'final' => $this->documentos->find((int) $id, BalanceteService::CODIGO),
+            'novoForm' => $novoForm,
+            'novoId' => (int) ($r->query['novo'] ?? 0),
         ]));
     }
 
@@ -42,9 +47,8 @@ final class BalanceteController
         if (($erro = $this->validar($id)) !== null) {
             return $erro;
         }
-        $old = Session::old();
-        $base = $old ?: array_intersect_key($r->query, array_flip(['tipo', 'origem', 'fonte', 'data', 'boletim_parcela'])) + ['tipo' => 'despesa', 'origem' => 'convenio'];
-        return $this->form('Novo lançamento', $id, $base, "/projetos/$id/balancete/lancamentos", false);
+        // DEC-BL3: o formulário de novo lançamento agora fica na tela do balancete
+        return Response::redirect("/projetos/$id/balancete#novo-lancamento");
     }
 
     public function criar(Request $r, string $id): Response
@@ -54,16 +58,11 @@ final class BalanceteController
         }
         $v = Validator::lancamento($r->post);
         if ($v['erros']) {
-            return $this->voltar("/projetos/$id/balancete/lancamentos/novo", $v['erros'], $r->post);
+            return $this->voltar("/projetos/$id/balancete#novo-lancamento", $v['erros'], $r->post);
         }
-        $this->service->criar((int) $id, $v['dados']);
-        Session::flash('Lançamento adicionado.');
-        if (isset($r->post['outro'])) {
-            $d = $v['dados'];
-            $q = http_build_query(['tipo' => $d['tipo'], 'origem' => $d['origem'], 'fonte' => $d['fonte'], 'data' => $d['data']]);
-            return Response::redirect("/projetos/$id/balancete/lancamentos/novo?$q");
-        }
-        return Response::redirect("/projetos/$id/balancete");
+        $lid = $this->service->criar((int) $id, $v['dados']);
+        Session::flash('Lançamento adicionado: ' . $v['dados']['descricao'] . ' — R$ ' . Money::format((int) $v['dados']['valor_centavos']));
+        return Response::redirect("/projetos/$id/balancete?novo=$lid#novo-lancamento");
     }
 
     public function editar(Request $r, string $id, string $lid): Response

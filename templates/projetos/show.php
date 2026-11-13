@@ -1,116 +1,136 @@
 <?php
-use App\Catalog\DocumentCatalog;
+use App\Presenters\DocumentoLinhaPresenter as L;
+
+$pid = (int) $projeto['id'];
+$valor = fn ($v): string => trim((string) $v) !== '' ? e((string) $v) : '—';
+$data = $projeto['data_assinatura'] !== '' ? date('d/m/Y', strtotime($projeto['data_assinatura'])) : '';
+$localData = trim($projeto['local']) !== '' || $data !== ''
+    ? trim(e($projeto['local']) . ($projeto['local'] !== '' && $data !== '' ? ' — ' : '') . e($data))
+    : '—';
+// ZIP da prestação (specs/zip-prestacao.md): pendências avisadas antes de baixar (RF-Z04, DEC-Z2)
+$zip = L::resumoZip($linhas);
+$avisos = [];
+if ($zip['desatualizados']) {
+    $avisos[] = count($zip['desatualizados']) . ' documento(s) desatualizado(s): ' . implode(', ', $zip['desatualizados']) . '.';
+}
+if ($zip['naoGerados']) {
+    $avisos[] = count($zip['naoGerados']) . ' documento(s) não gerado(s): ' . implode(', ', $zip['naoGerados']) . ' (não entram no ZIP).';
+}
+$confirmar = $avisos ? implode("
+", $avisos) . "
+
+Baixar mesmo assim?" : null;
+$contador = $valor($projeto['contador_nome']) . ($projeto['contador_crc'] !== '' ? ' <small>(' . e($projeto['contador_crc']) . ')</small>' : '');
 ?>
-<div class="barra">
-    <h1>Projeto #<?= (int) $projeto['id'] ?></h1>
+<nav aria-label="Trilha de navegação">
+    <ol class="migalhas">
+        <li><a href="/projetos">Projetos</a></li>
+        <li aria-current="page">Projeto #<?= $pid ?></li>
+    </ol>
+</nav>
+
+<div class="barra projeto-cab">
+    <div class="projeto-titulo">
+        <h1><?= trim($projeto['objeto']) !== '' ? e($projeto['objeto']) : 'Projeto #' . $pid ?></h1>
+        <p class="projeto-sub"><?= e($projeto['municipio_nome']) ?> - <?= e($projeto['municipio_uf']) ?> · Projeto #<?= $pid ?></p>
+    </div>
     <div class="acoes">
-        <a class="btn secundario" href="/projetos/<?= (int) $projeto['id'] ?>/editar">Editar dados</a>
-        <form method="post" action="/projetos/<?= (int) $projeto['id'] ?>/excluir" onsubmit="return confirm('Excluir este projeto e todos os seus documentos?')">
-            <?= csrf_field() ?>
-            <button class="btn perigo" type="submit">Excluir</button>
-        </form>
+        <a class="btn secundario" href="/projetos/<?= $pid ?>/editar">Editar dados</a>
+        <?php if ($zip['comPdf'] > 0): ?>
+            <a class="btn" href="/projetos/<?= $pid ?>/zip"<?php if ($confirmar !== null): ?> onclick="return confirm(<?= e((string) json_encode($confirmar, JSON_UNESCAPED_UNICODE)) ?>)"<?php endif; ?>>Baixar prestação (ZIP)</a>
+        <?php else: ?>
+            <span class="btn" aria-disabled="true" title="Nenhum documento com PDF ainda">Baixar prestação (ZIP)</span>
+        <?php endif; ?>
     </div>
 </div>
+<p class="dica">
+<?php if ($zip['comPdf'] === 0): ?>
+    Nenhum documento com PDF ainda: o ZIP fica disponível quando houver pelo menos um.
+<?php else: ?>
+    <?= $zip['comPdf'] ?> documento(s) no ZIP<?php if ($zip['desatualizados']): ?> · <span class="tag aviso-tag"><?= count($zip['desatualizados']) ?> desatualizado(s)</span> (<?= e(implode(', ', $zip['desatualizados'])) ?>)<?php endif; ?><?php if ($zip['naoGerados']): ?> · <span class="tag aviso-tag"><?= count($zip['naoGerados']) ?> não gerado(s)</span> (<?= e(implode(', ', $zip['naoGerados'])) ?>)<?php endif; ?>
+<?php endif; ?>
+</p>
 
-<dl class="dados">
-    <dt>Executor</dt><dd><?= e($projeto['municipio_nome']) ?> - <?= e($projeto['municipio_uf']) ?></dd>
-    <dt>Concedente</dt><dd><?= e($projeto['concedente']) ?: '—' ?></dd>
-    <dt>Processo</dt><dd><?= e($projeto['processo']) ?: '—' ?></dd>
-    <dt>PP / NE / NL</dt><dd><?= e($projeto['nr_pp']) ?: '—' ?> / <?= e($projeto['nr_ne']) ?: '—' ?> / <?= e($projeto['nr_nl']) ?: '—' ?></dd>
-    <dt>Objeto</dt><dd><?= e($projeto['objeto']) ?></dd>
-    <dt>Local e data</dt><dd><?= e($projeto['local']) ?: '—' ?><?= $projeto['data_assinatura'] !== '' ? ' — ' . e(date('d/m/Y', strtotime($projeto['data_assinatura']))) : '' ?></dd>
-    <dt>Assinaturas</dt><dd>
-        <?= e($projeto['contador_nome']) ?: '—' ?><?= $projeto['contador_crc'] !== '' ? ' (' . e($projeto['contador_crc']) . ')' : '' ?>
-        e <?= e($projeto['prefeito_nome']) ?: '—' ?> (Prefeito)
-    </dd>
-</dl>
+<section class="cartao projeto-dados" aria-labelledby="dados-titulo">
+    <h2 id="dados-titulo" class="cartao-titulo">Dados do projeto</h2>
+    <dl class="dados-grade">
+        <div class="dado-largo"><dt>Concedente</dt><dd><?= $valor($projeto['concedente']) ?></dd></div>
+        <div class="dado-largo"><dt>Processo</dt><dd><?= $valor($projeto['processo']) ?></dd></div>
+        <div><dt>PP</dt><dd><?= $valor($projeto['nr_pp']) ?></dd></div>
+        <div><dt>NE</dt><dd><?= $valor($projeto['nr_ne']) ?></dd></div>
+        <div><dt>NL</dt><dd><?= $valor($projeto['nr_nl']) ?></dd></div>
+        <div><dt>Local e data</dt><dd><?= $localData ?></dd></div>
+        <div><dt>Contador</dt><dd><?= $contador ?></dd></div>
+        <div><dt>Prefeito</dt><dd><?= $valor($projeto['prefeito_nome']) ?></dd></div>
+    </dl>
+</section>
 
-<h2>Documentos da prestação de contas</h2>
-<p class="aviso">Nenhum documento é obrigatório. O formulário da relação de bens será habilitado na próxima etapa.</p>
-<div class="rolagem"><table>
-    <thead><tr><th>Nº</th><th>Documento</th><th>Como é preenchido</th><th>Situação</th><th>Ações</th></tr></thead>
-    <tbody>
-    <?php foreach ($documentos as $d):
-        $env = $enviados[$d['codigo']] ?? null;
-        $base = '/projetos/' . (int) $projeto['id'] . '/documentos/' . $d['codigo'];
-        $upload = $d['comportamento'] === DocumentCatalog::UPLOAD;
-        $juncao = $d['comportamento'] === DocumentCatalog::MERGE;
-        $converte = DocumentCatalog::ehConversao($d['codigo']);
-        $relatorio = $d['comportamento'] === DocumentCatalog::REPORT;
-        $rel = $relatorios[$d['codigo']] ?? null;  // formulários já implementados
-        $relatorioPronto = $rel !== null;
-        $nLanc = (int) ($rel['n'] ?? 0);
-        $ext = DocumentCatalog::extensoesUpload($d['codigo'])[0];
-        $accept = ['pdf' => 'application/pdf,.pdf', 'png' => 'image/png,.png', 'pptx' => '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'][$ext];
-        $nArq = (int) ($contagens[$d['codigo']] ?? 0);
-    ?>
-        <tr id="doc-<?= e($d['codigo']) ?>">
-            <td><?= e($d['codigo']) ?></td>
-            <td><?= e($d['nome']) ?></td>
-            <td><?= e(DocumentCatalog::label($d['comportamento'])) ?></td>
-            <td>
-                <?php if ($juncao): ?>
-                    <?php if ($env && (int) $env['desatualizado'] === 1): ?>
-                        <span class="tag aviso-tag">Desatualizado</span>
-                    <?php elseif ($env): ?>
-                        <span class="tag ok">Gerado</span>
-                    <?php elseif ($nArq > 0): ?>
-                        <span class="tag aviso-tag">Não gerado</span>
-                    <?php else: ?>
-                        <span class="tag vazio">Vazio</span>
-                    <?php endif; ?>
-                    <?php if ($nArq > 0): ?><small class="arq"><?= $nArq ?> arquivo(s)</small><?php endif; ?>
-                <?php elseif ($relatorio && $relatorioPronto): ?>
-                    <?php if ($env && (int) $env['desatualizado'] === 1): ?>
-                        <span class="tag aviso-tag">Desatualizado</span>
-                    <?php elseif ($env): ?>
-                        <span class="tag ok">Gerado</span>
-                    <?php elseif ($nLanc > 0): ?>
-                        <span class="tag aviso-tag">Não gerado</span>
-                    <?php else: ?>
-                        <span class="tag vazio">Vazio</span>
-                    <?php endif; ?>
-                    <?php if ($nLanc > 0): ?><small class="arq"><?= $nLanc ?> <?= e($rel['unidade'] ?? '') ?></small><?php endif; ?>
-                <?php elseif ($env): ?>
-                    <span class="tag ok"><?= $converte ? 'Convertido' : 'Enviado' ?></span>
-                    <small class="arq"><?= e($env['nome_original']) ?> · <?= e(format_bytes((int) $env['tamanho'])) ?></small>
-                <?php else: ?>
-                    <span class="tag vazio">Vazio</span>
-                <?php endif; ?>
-            </td>
-            <td>
-                <?php if ($upload || $converte): ?>
-                    <?php if ($env): ?>
-                        <div class="acoes">
-                            <a href="<?= e($base) ?>/baixar?ver=1" target="_blank" rel="noopener">Ver</a>
-                            <a href="<?= e($base) ?>/baixar">Baixar</a>
-                            <form method="post" action="<?= e($base) ?>/remover" onsubmit="return confirm('Remover este arquivo?')">
-                                <?= csrf_field() ?>
-                                <button class="link perigo" type="submit">Remover</button>
-                            </form>
-                        </div>
-                    <?php endif; ?>
-                    <form method="post" action="<?= e($base) ?>/enviar" enctype="multipart/form-data" class="envio">
-                        <?= csrf_field() ?>
-                        <input type="file" name="arquivo" accept="<?= e($accept) ?>" required aria-label="Arquivo <?= e(strtoupper($ext)) ?> do documento <?= e($d['codigo']) ?>">
-                        <button class="btn secundario" type="submit"><?= $env ? 'Substituir' : 'Enviar' ?></button>
-                    </form>
-                    <?php if ($converte): ?><small class="breve">Envie <?= e(strtoupper($ext)) ?>; o sistema converte para PDF.</small><?php endif; ?>
-                <?php elseif ($relatorio && $relatorioPronto): ?>
-                    <div class="acoes">
-                        <a class="btn secundario" href="<?= e($rel['url']) ?>"><?= e($rel['rotulo']) ?></a>
-                        <?php if ($env): ?><a href="<?= e($base) ?>/baixar">Baixar</a><?php endif; ?>
-                    </div>
-                <?php elseif ($juncao): ?>
-                    <div class="acoes">
-                        <a class="btn secundario" href="<?= e($base) ?>">Gerenciar arquivos</a>
-                        <?php if ($env): ?><a href="<?= e($base) ?>/baixar">Baixar</a><?php endif; ?>
-                    </div>
-                <?php else: ?>
-                    <small class="breve">Disponível em etapa futura</small>
-                <?php endif; ?>
-            </td>
-        </tr>
-    <?php endforeach; ?>
-    </tbody>
-</table></div>
+<section aria-labelledby="docs-titulo">
+    <h2 id="docs-titulo">Documentos da prestação de contas</h2>
+    <p class="dica">Nenhum documento é obrigatório.</p>
+    <div class="rolagem">
+    <table class="docs" role="table">
+        <thead role="rowgroup">
+            <tr role="row">
+                <th role="columnheader" scope="col" class="docs-num">Nº</th>
+                <th role="columnheader" scope="col">Documento</th>
+                <th role="columnheader" scope="col">Situação</th>
+                <th role="columnheader" scope="col">Ações</th>
+            </tr>
+        </thead>
+        <tbody role="rowgroup">
+<?php /* laço sem indentação: os espaços se repetiriam nas 25 linhas do HTML gerado */ ?>
+<?php foreach ($linhas as $l): $u = $l['urls']; ?>
+<tr id="doc-<?= e($l['codigo']) ?>" role="row" class="doc-linha<?= $l['desatualizado'] ? ' doc-pendente' : '' ?>">
+<td role="cell" class="docs-num"><?= e($l['codigo']) ?></td>
+<td role="cell"><span class="doc-nome"><?= e($l['nome']) ?></span> <small class="doc-tipo"><?= e($l['tipo']) ?></small></td>
+<td role="cell" class="docs-situacao" data-rotulo="Situação"><span class="tag <?= e($l['situacao']['classe']) ?>"><?= e($l['situacao']['texto']) ?></span>
+<?php if ($l['detalhe'] !== null): ?><small class="arq"><?= e($l['detalhe']) ?></small><?php endif; ?></td>
+<td role="cell" class="docs-acoes"><div class="acoes">
+<?php if ($l['acao'] === L::ACAO_UPLOAD): ?>
+<?php if ($l['temArquivo']): ?>
+<a href="<?= e($u['ver']) ?>" target="_blank" rel="noopener">Ver</a>
+<a href="<?= e($u['baixar']) ?>">Baixar</a>
+<?php endif; ?>
+<details class="recolhe">
+<summary class="btn secundario pequeno"><?= $l['temArquivo'] ? 'Substituir' : 'Enviar arquivo' ?></summary>
+<div class="recolhe-painel">
+<form method="post" action="<?= e($u['enviar']) ?>" enctype="multipart/form-data" class="envio">
+<?= csrf_field() ?>
+<input type="file" name="arquivo" accept="<?= e($l['envio']['accept']) ?>" required aria-label="<?= e($l['envio']['rotuloCampo']) ?>">
+<button class="btn pequeno" type="submit"><?= $l['temArquivo'] ? 'Substituir' : 'Enviar' ?></button>
+</form>
+<?php if ($l['envio']['dicaConversao'] !== null): ?><small class="breve"><?= e($l['envio']['dicaConversao']) ?></small><?php endif; ?>
+</div>
+</details>
+<?php if ($l['temArquivo']): ?>
+<form method="post" action="<?= e($u['remover']) ?>" onsubmit="return confirm('Remover este arquivo?')">
+<?= csrf_field() ?>
+<button class="link perigo" type="submit">Remover</button>
+</form>
+<?php endif; ?>
+<?php elseif ($l['acao'] === L::ACAO_FORMULARIO): ?>
+<a class="btn secundario pequeno" href="<?= e($l['formulario']['url']) ?>"><?= e($l['formulario']['rotulo']) ?></a>
+<?php if ($l['temArquivo']): ?><a href="<?= e($u['baixar']) ?>">Baixar</a><?php endif; ?>
+<?php elseif ($l['acao'] === L::ACAO_JUNCAO): ?>
+<a class="btn secundario pequeno" href="<?= e($u['base']) ?>">Gerenciar arquivos</a>
+<?php if ($l['temArquivo']): ?><a href="<?= e($u['baixar']) ?>">Baixar</a><?php endif; ?>
+<?php endif; ?>
+</div></td>
+</tr>
+<?php endforeach; ?>
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<section class="zona-perigo" aria-labelledby="perigo-titulo">
+    <div>
+        <h2 id="perigo-titulo">Zona de perigo</h2>
+        <p>Excluir este projeto apaga todos os seus documentos. Não é possível desfazer.</p>
+    </div>
+    <form method="post" action="/projetos/<?= $pid ?>/excluir" onsubmit="return confirm('Excluir este projeto e todos os seus documentos?')">
+        <?= csrf_field() ?>
+        <button class="btn perigo" type="submit">Excluir projeto</button>
+    </form>
+</section>

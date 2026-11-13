@@ -124,7 +124,8 @@ final class DesignSystemTest extends TestCase
         $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($this->raiz . '/templates', \FilesystemIterator::SKIP_DOTS));
         $usadas = [];
         foreach ($it as $f) {
-            $rel = str_replace($this->raiz . '/templates/', '', $f->getPathname());
+            // DT-2 (plans/relacao-de-bens-plan.md): no Windows o caminho vem com "\"; sem normalizar, pdf/ não era excluído
+            $rel = str_replace(str_replace('\\', '/', $this->raiz) . '/templates/', '', str_replace('\\', '/', $f->getPathname()));
             if (!str_ends_with($rel, '.php') || str_starts_with($rel, 'pdf/')) {
                 continue;
             }
@@ -195,7 +196,8 @@ final class DesignSystemTest extends TestCase
 
     public function testSizeLimits(): void
     {
-        $this->assertLessThanOrEqual(30 * 1024, filesize($this->raiz . '/public/assets/app.css'), 'CSS acima de 30 KB');
+        // Limite elevado de 30 para 40 KB na DEC-L3 (specs/redesenho-layout-municipios.md): sistema local, sem custo de rede.
+        $this->assertLessThanOrEqual(40 * 1024, filesize($this->raiz . '/public/assets/app.css'), 'CSS acima de 40 KB');
         $this->assertLessThanOrEqual(3 * 1024, filesize($this->raiz . '/public/assets/app.js'), 'JS global acima de 3 KB');
     }
 
@@ -319,10 +321,13 @@ final class DesignSystemTest extends TestCase
             '_estilo.php' => 'bc97713000c708d9f040bc83ab0dcbbee81a2bdd27727741997181d832619b16',
             'fisico_financeiro.php' => 'df5d5e459206ddfaf55690ce6c12cf54314fd2003f9df4e93dcdc625875e4ead',
             '_rodape.php' => 'f3e1aae26ef526952e7367a81a2bbc4c2bd851d776d0513219cb40298523b9ea',
+            // Etapa 9 (specs/relacao-de-bens.md): PDF novo da relação de bens
+            'relacao_bens.php' => 'c56a6e28f332fe4c18f5d37e234402b4f0d74e0a6eb7648ed69606a589165254',
         ];
         $atuais = [];
         foreach (glob($this->raiz . '/templates/pdf/*.php') ?: [] as $f) {
-            $atuais[basename($f)] = hash_file('sha256', $f);
+            // DT-1: hash do conteúdo com quebras de linha normalizadas (o git no Windows converte LF em CRLF)
+            $atuais[basename($f)] = hash('sha256', str_replace("\r\n", "\n", (string) file_get_contents($f)));
         }
         ksort($atuais);
         ksort($esperado);

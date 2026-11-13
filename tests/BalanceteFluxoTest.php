@@ -85,20 +85,26 @@ final class BalanceteFluxoTest extends TestCase
 
     public function testInvalidLancamentoIsNotSavedAndKeepsInput(): void
     {
+        // specs/balancete-lancamento-na-tela.md: o erro volta à tela do balancete, com o que foi digitado
         $res = $this->lanc(['valor' => 'abc', 'descricao' => 'Algo digitado']);
-        $this->assertSame("/projetos/{$this->pid}/balancete/lancamentos/novo", $res->headers['Location']);
+        $this->assertSame("/projetos/{$this->pid}/balancete#novo-lancamento", $res->headers['Location']);
         $this->assertCount(0, $this->rows());
-        $form = $this->get("/projetos/{$this->pid}/balancete/lancamentos/novo");
-        $this->assertStringContainsString('Algo digitado', $form->body);
+        $tela = $this->get("/projetos/{$this->pid}/balancete");
+        $this->assertStringContainsString('value="Algo digitado"', $tela->body);
     }
 
-    public function testSaveAndAddAnotherKeepsContext(): void
+    public function testFormIsCleanAfterSaving(): void
     {
-        $res = $this->lanc(['outro' => '1', 'origem' => 'contrapartida', 'data' => '2026-01-10']);
-        $loc = $res->headers['Location'];
-        $this->assertStringContainsString('lancamentos/novo?', $loc);
-        $this->assertStringContainsString('origem=contrapartida', $loc);
-        $this->assertStringContainsString('data=2026-01-10', $loc);
+        // Substitui o antigo "Salvar e adicionar outro" (DEC-BL1): depois de salvar, o formulário da tela volta limpo
+        $res = $this->lanc(['origem' => 'contrapartida', 'data' => '2026-01-10', 'descricao' => 'Contrapartida X']);
+        $lid = (int) $this->rows()[0]['id'];
+        $this->assertSame("/projetos/{$this->pid}/balancete?novo=$lid#novo-lancamento", $res->headers['Location']);
+        $tela = $this->get("/projetos/{$this->pid}/balancete")->body;
+        preg_match('#<form[^>]*id="form-lancamento".*?</form>#s', $tela, $m);
+        $this->assertStringNotContainsString('Contrapartida X', $m[0]);
+        $this->assertStringNotContainsString('2026-01-10', $m[0]);
+        $this->assertStringContainsString('<option value="convenio" selected>', $m[0]);
+        $this->assertStringContainsString('value="despesa" checked', $m[0]);
     }
 
     public function testEditUpdatesAndShowsValueInBrazilianFormat(): void

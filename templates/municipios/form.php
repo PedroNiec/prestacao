@@ -1,14 +1,18 @@
+<?= \App\Core\View::render("partes/trilha", ["itens" => [["Municípios", "/municipios"], [$titulo]]], false) ?>
 <h1><?= e($titulo) ?></h1>
 <form method="post" action="<?= e($action) ?>" class="form">
     <?= csrf_field() ?>
+    <fieldset>
+    <legend>Identificação</legend>
     <label>Nome do município
         <input name="nome" required maxlength="120" value="<?= e($municipio['nome'] ?? '') ?>">
     </label>
-    <label>UF
-        <input name="uf" required maxlength="2" size="2" style="text-transform:uppercase" value="<?= e($municipio['uf'] ?? 'SC') ?>">
+    <label class="campo-uf">UF
+        <input name="uf" required maxlength="2" size="2" value="<?= e($municipio['uf'] ?? 'SC') ?>">
     </label>
+    </fieldset>
     <fieldset>
-        <legend>Signatários padrão</legend>
+        <legend>Signatários padrão <small>(copiados para cada projeto novo)</small></legend>
         <label>Prefeito
             <input name="prefeito_nome" maxlength="120" value="<?= e($municipio['prefeito_nome'] ?? '') ?>">
         </label>
@@ -21,6 +25,6 @@
     </fieldset>
     <div class="botoes">
         <button class="btn" type="submit">Salvar</button>
-        <a href="/municipios">Cancelar</a>
+        <a class="btn secundario" href="/municipios">Cancelar</a>
     </div>
 </form>

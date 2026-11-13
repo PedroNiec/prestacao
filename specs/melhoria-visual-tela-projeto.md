@@ -1,7 +1,7 @@
 
 # SPEC — Melhoria visual: Tela do Projeto (Fase 2.1)
 
-**Versão:** 1.0
+**Versão:** 1.3
 **Status:** Aprovada (2026-11-12)
 **Data:** 2026-11-12
 **Relacionada a:** `specs/melhoria-visual-fundacao.md` (fundação visual, já implementada) e
@@ -60,7 +60,7 @@ Um único usuário (quem prepara a prestação de contas).
 - RF-P03 **Cartão "Dados do projeto":** grade de duas colunas com Concedente, Processo, PP, NE, NL (cada um
   com seu rótulo), Local e data, Contador (nome e CRC) e Prefeito. Campos vazios aparecem como "—". O objeto
   fica no título (não se repete).
-- RF-P04 **Resumo dos documentos** (ver DEC-P1): "N de 25 com arquivo · M desatualizados", derivado dos dados
+- RF-P04 ~~**Resumo dos documentos**~~ — **não será feito** (DEC-P1 = fora, v1.2): "N de 25 com arquivo · M desatualizados", derivado dos dados
   já carregados pela tela.
 - RF-P05 **Lista de documentos** continua sendo uma `<table>` (dado tabular), agora com 4 colunas:
   `Nº | Documento | Situação | Ações`. O **tipo** ("Upload de arquivo", "Junção de PDFs", "Formulário no
@@ -77,13 +77,13 @@ Um único usuário (quem prepara a prestação de contas).
   hoje** (campo de arquivo + botão). Funciona sem JavaScript.
 - RF-P07 **Destaque de pendência:** linhas "Desatualizado" ganham marca lateral âmbar (além da etiqueta com
   texto, que continua a ser a fonte da informação).
-- RF-P08 **Documento ainda não disponível** (09 — relação de bens): a linha mostra a etiqueta neutra
-  "Em breve" no lugar do texto "Disponível em etapa futura" (ver DEC-P3).
+- RF-P08 **Documento ainda não disponível** (09 — relação de bens): a linha **mantém** o texto atual
+  "Disponível em etapa futura" (DEC-P3 = manter, v1.2).
 - RF-P09 **Tela estreita (≤ 640 px):** cada documento vira um **cartão empilhado** (número e nome; situação;
   ações), sem rolagem horizontal; a semântica de tabela é preservada para leitores de tela.
 - RF-P10 **Âncoras:** as linhas `#doc-XX` recebem margem de rolagem para não ficarem sob as mensagens fixas.
 - RF-P11 **Texto de apoio:** "Nenhum documento é obrigatório." permanece sob o título da seção; a frase de
-  desenvolvimento sobre a relação de bens é removida (ver DEC-P3).
+  desenvolvimento sobre a relação de bens também **permanece** (DEC-P3 = manter, v1.2).
 
 ### Esboço — desktop
 
@@ -100,7 +100,7 @@ Projetos › Projeto #1
 │ Local/data  Caxambu do Sul - SC — 05/03/2026                              │
 │ Contador    MAICON LUCAS LUFT (CRC/SC 102.316)   Prefeito  EDI MARCOS ... │
 └──────────────────────────────────────────────────────────────────────────┘
-Documentos da prestação de contas          9 de 25 com arquivo · 1 desatualizado
+Documentos da prestação de contas
 Nenhum documento é obrigatório.
  Nº  Documento                          Situação            Ações
  01  Balancete                          [Gerado]            [Abrir balancete]  Baixar
@@ -126,7 +126,6 @@ PARA O TRANSPORTE ESCOLAR
 Caxambu do Sul - SC · Projeto #1
 [Editar dados]
 Dados do projeto  (1 coluna)
-9 de 25 com arquivo · 1 desatualizado
 ┌──────────────────────────────┐
 │ 18  Parecer do Controle Int. │
 │ Upload de arquivo            │
@@ -159,7 +158,7 @@ Nenhuma afetada. Regras desta melhoria:
 ## 7. Fluxos de utilização
 
 ### Fluxo principal
-1. Abrir um projeto: ver título (objeto), dados e resumo.
+1. Abrir um projeto: ver título (objeto) e dados.
 2. Percorrer a lista de documentos: situação à vista, uma ação por linha.
 3. Enviar um arquivo: acionar **Enviar arquivo ▾**, escolher o arquivo, **Enviar** → redirecionamento à própria
    linha com mensagem (comportamento atual).
@@ -178,18 +177,20 @@ Nenhuma afetada. Regras desta melhoria:
 
 ## 9. Critérios de aceitação
 
-- [ ] CA-P01 Ao carregar, **nenhum campo de arquivo está visível**; cada um aparece ao acionar "Enviar arquivo"
-      ou "Substituir" da sua linha (e envia exatamente como antes).
-- [ ] CA-P02 Cada linha tem **no máximo uma ação destacada** (botão); as demais são links ou ações discretas.
-- [ ] CA-P03 O título mostra o objeto e o município; "Excluir projeto" fica só na zona de perigo e mantém a
-      confirmação e o efeito.
+- [x] CA-P01 Ao carregar, **nenhum campo de arquivo está visível**; cada um aparece ao acionar "Enviar arquivo"
+      ou "Substituir" da sua linha (e envia exatamente como antes). *(verificado por teste automático, 2026-11-12)*
+- [x] CA-P02 Cada linha tem **no máximo uma ação destacada** (botão); as demais são links ou ações discretas. *(verificado por teste automático, 2026-11-12)*
+- [x] CA-P03 O título mostra o objeto e o município; "Excluir projeto" fica só na zona de perigo e mantém a
+      confirmação e o efeito. *(verificado por teste automático, 2026-11-12)*
 - [ ] CA-P04 Com 360 px de largura **não há rolagem horizontal**, nem da página nem da lista de documentos.
-- [ ] CA-P05 As 25 linhas, seus códigos, ordem e situações permanecem; as etiquetas continuam com os mesmos textos
-      e classes (`tag vazio`, `tag ok`, `tag aviso-tag`).
+- [x] CA-P05 As 25 linhas, seus códigos, ordem e situações permanecem; as etiquetas continuam com os mesmos textos
+      e classes (`tag vazio`, `tag ok`, `tag aviso-tag`). *(verificado por teste automático, 2026-11-12)*
 - [ ] CA-P06 Todos os fluxos existentes funcionam: enviar, substituir, remover, ver, baixar, gerenciar arquivos,
       abrir balancete/físico-financeiro/conciliação, editar dados, excluir projeto.
-- [ ] CA-P07 Os **244 testes** atuais passam; nenhum teste de comportamento é alterado (se um teste acoplado ao
-      HTML precisar mudar, a mudança é mínima e registrada).
+- [x] CA-P07 Os **247 testes** atuais passam (eram 244 quando a spec foi escrita); nenhum teste de comportamento é alterado (se um teste acoplado ao
+      HTML precisar mudar, a mudança é mínima e registrada). *(nenhum teste existente alterado; 264 testes no total. Neste
+      computador, 50 testes já falhavam **antes** da mudança por falta de Ghostscript/LibreOffice e por diferenças do
+      Windows; nenhuma falha nova.)*
 - [ ] CA-P08 Navegação por Tab percorre a lista de forma lógica, com foco visível, incluindo `<details>`.
 - [ ] CA-P09 Ao voltar de uma ação (`#doc-XX`), a linha alvo fica visível abaixo da mensagem fixa.
 
@@ -214,17 +215,17 @@ Nenhuma afetada. Regras desta melhoria:
 
 ## 12. Decisões pendentes
 
-- [ ] DEC-P1 **Resumo "N de 25 com arquivo · M desatualizados"** (RF-P04). Acrescenta uma informação nova, só de
+- [x] DEC-P1 **Decidido em 2026-11-12: fora.** **Resumo "N de 25 com arquivo · M desatualizados"** (RF-P04). Acrescenta uma informação nova, só de
       apresentação, calculada com dados já carregados. *Recomendo incluir:* é o que responde "falta muita coisa?"
       sem contar linhas. *Padrão se não houver resposta: fora.*
 - [ ] DEC-P2 **Filtro por situação** (mostrar só pendentes/desatualizados). Exigiria JavaScript. *Recomendo não
       incluir agora*: avaliar depois de ver a nova lista. *Padrão: fora.*
-- [ ] DEC-P3 **Dois textos de interface:** "Disponível em etapa futura" → etiqueta "Em breve"; remover "O formulário
+- [x] DEC-P3 **Decidido em 2026-11-12: manter os textos atuais.** **Dois textos de interface:** "Disponível em etapa futura" → etiqueta "Em breve"; remover "O formulário
       da relação de bens será habilitado na próxima etapa". São textos provisórios de desenvolvimento.
       *Recomendo aprovar.* *Padrão: manter os textos atuais.*
-- [ ] DEC-P4 **Mover "Excluir" para a zona de perigo** no fim da página (RF-P02). *Recomendo aprovar.*
+- [x] DEC-P4 **Mover "Excluir" para a zona de perigo** no fim da página (RF-P02). *Recomendo aprovar.*
       *Padrão: aprovar (faz parte da proposta).*
-- [ ] DEC-P5 **Título com o objeto** (e "Projeto #N" como subtítulo). Em objetos muito longos o título ocupa várias
+- [x] DEC-P5 **Título com o objeto** (e "Projeto #N" como subtítulo). Em objetos muito longos o título ocupa várias
       linhas. *Recomendo aprovar.* *Padrão: aprovar.*
 
 ## 13. Histórico de alterações
@@ -233,3 +234,5 @@ Nenhuma afetada. Regras desta melhoria:
 |---|---|---|
 | 1.0 | Criação inicial: levantamento com medição e proposta visual da tela do Projeto | 2026-11-12 |
 | 1.1 | Especificação aprovada pelo usuário. DEC-P1 e DEC-P3 não foram respondidas e seguem com o padrão (fora/manter textos); DEC-P2, P4 e P5 conforme o padrão | 2026-11-12 |
+| 1.2 | DEC-P1 e DEC-P3 respondidas pelo usuário: **sem resumo** e **textos atuais mantidos**. RF-P04 cancelado; RF-P08/RF-P11 passam a manter os textos; esboços e CA-P07 (247 testes) atualizados | 2026-11-12 |
+| 1.3 | **Implementada** (2026-11-12). CA-P01/02/03/05/07 verificados por teste; CA-P04/06/08/09 aguardam conferência no navegador do usuário. Detalhes de apresentação: dados em grade de 3 colunas (2 em telas médias, 1 em estreitas) com Concedente e Processo em linha inteira; a zona de perigo acrescenta "Não é possível desfazer."; o aviso "Nenhum documento é obrigatório..." passou de caixa amarela para texto de apoio (mesmo texto) | 2026-11-12 |

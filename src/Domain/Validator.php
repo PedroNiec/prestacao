@@ -176,6 +176,31 @@ final class Validator
         return ['dados' => $d, 'erros' => $erros];
     }
 
+    /**
+     * Bem da relação de bens (doc. 09, specs/relacao-de-bens.md): descrição e valor obrigatórios, valor > 0.
+     * @return array{dados:array{descricao:string,valor_centavos:int},erros:string[]}
+     */
+    public static function bem(array $in): array
+    {
+        $d = ['descricao' => self::txt($in, 'descricao', 500), 'valor_centavos' => 0];
+        $erros = [];
+        if ($d['descricao'] === '') {
+            $erros[] = 'Informe a descrição do bem.';
+        }
+        $raw = trim((string) ($in['valor'] ?? ''));
+        $v = $raw === '' ? null : Money::parse($raw);
+        if ($raw === '') {
+            $erros[] = 'Informe o valor do bem.';
+        } elseif ($v === null) {
+            $erros[] = 'Valor inválido (use números positivos, ex.: 1.234,56).';
+        } elseif ($v <= 0) {
+            $erros[] = 'O valor do bem deve ser maior que zero.';
+        } else {
+            $d['valor_centavos'] = $v;
+        }
+        return ['dados' => $d, 'erros' => $erros];
+    }
+
     /** @return array{dados:array<string,mixed>,erros:string[]} Nota fiscal da conciliação (RF-15). */
     public static function conciliacaoNota(array $in): array
     {

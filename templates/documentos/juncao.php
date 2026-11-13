@@ -1,38 +1,25 @@
 <?php
-$base = '/projetos/' . (int) $projeto['id'] . '/documentos/' . $doc['codigo'];
-$desatualizado = $final && (int) $final['desatualizado'] === 1;
-?>
-<p><a href="/projetos/<?= (int) $projeto['id'] ?>#doc-<?= e($doc['codigo']) ?>">← Voltar ao projeto #<?= (int) $projeto['id'] ?></a></p>
-<div class="barra">
-    <h1><?= e($doc['codigo']) ?> — <?= e($doc['nome']) ?></h1>
-</div>
-<p>Envie os PDFs, arraste para definir a ordem e clique em <strong>Gerar PDF</strong>. Nenhum arquivo é obrigatório.</p>
+use App\Core\View;
 
-<h2>PDF final</h2>
-<div class="caixa">
-    <?php if (!$final): ?>
-        <span class="tag vazio">Não gerado</span>
-    <?php elseif ($desatualizado): ?>
-        <span class="tag aviso-tag">Desatualizado</span>
-        A lista de arquivos mudou desde a última geração. Gere novamente.
-    <?php else: ?>
-        <span class="tag ok">Gerado</span> <small><?= e(format_bytes((int) $final['tamanho'])) ?> · <?= e($final['atualizado_em']) ?></small>
-    <?php endif; ?>
-    <div class="acoes" style="margin-top:.6rem">
-        <form method="post" action="<?= e($base) ?>/gerar">
-            <?= csrf_field() ?>
-            <button class="btn" type="submit" <?= $arquivos ? '' : 'disabled' ?>>Gerar PDF</button>
-        </form>
-        <?php if ($final): ?>
-            <a href="<?= e($base) ?>/baixar?ver=1" target="_blank" rel="noopener">Ver</a>
-            <a href="<?= e($base) ?>/baixar">Baixar</a>
-        <?php endif; ?>
+$base = '/projetos/' . (int) $projeto['id'] . '/documentos/' . $doc['codigo'];
+?>
+<?= View::render("partes/trilha", ["projeto" => $projeto, "ancora" => "#doc-" . $doc["codigo"], "itens" => [[$doc["codigo"] . " " . $doc["nome"]]]], false) ?>
+<div class="barra projeto-cab">
+    <div class="projeto-titulo">
+        <h1><?= e($doc["codigo"]) ?> — <?= e($doc["nome"]) ?></h1>
+        <p class="projeto-sub"><?= e($projeto["municipio_nome"]) ?> - <?= e($projeto["municipio_uf"]) ?> · Projeto #<?= (int) $projeto["id"] ?></p>
     </div>
 </div>
+<p class="dica">Envie os PDFs, arraste para definir a ordem e clique em <strong>Gerar PDF</strong>. Nenhum arquivo é obrigatório.</p>
+
+<?= View::render("partes/pdf", [
+    "final" => $final, "gerar" => $base . "/gerar", "baixar" => $base . "/baixar", "desabilitado" => !$arquivos,
+    "textos" => ["vazio" => "Não gerado", "gerado" => "Gerado", "desatualizado" => "A lista de arquivos mudou desde a última geração. Gere novamente."],
+], false) ?>
 
 <h2>Arquivos (<?= count($arquivos) ?>)</h2>
 <?php if (!$arquivos): ?>
-    <p class="aviso">Nenhum arquivo enviado ainda.</p>
+    <div class="estado-vazio"><strong>Nenhum arquivo enviado ainda.</strong> Use "Adicionar PDFs" logo abaixo.</div>
 <?php else: ?>
     <form method="post" action="<?= e($base) ?>/arquivos/ordem" id="form-ordem">
         <?= csrf_field() ?>

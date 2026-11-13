@@ -1,6 +1,13 @@
+<?php if ($id): ?>
+<?= \App\Core\View::render("partes/trilha", ["projeto" => ["id" => $id, "objeto" => $projeto["objeto"] ?? ""], "itens" => [["Editar dados"]]], false) ?>
+<?php else: ?>
+<?= \App\Core\View::render("partes/trilha", ["itens" => [["Projetos", "/projetos"], ["Novo projeto"]]], false) ?>
+<?php endif; ?>
 <h1><?= e($titulo) ?></h1>
 <form method="post" action="<?= e($action) ?>" class="form" id="form-projeto">
     <?= csrf_field() ?>
+    <fieldset>
+    <legend>Identificação</legend>
     <label>Município (executor)
         <select name="municipio_id" id="municipio_id" required>
             <option value="">Selecione…</option>
@@ -30,6 +37,7 @@
     <label>Objeto
         <textarea name="objeto" rows="3" required maxlength="1000"><?= e($projeto['objeto'] ?? '') ?></textarea>
     </label>
+    </fieldset>
     <fieldset>
         <legend>Local, data e assinaturas <small>(em branco = usa os dados do município)</small></legend>
         <div class="linha">
@@ -44,7 +52,7 @@
     </fieldset>
     <div class="botoes">
         <button class="btn" type="submit">Salvar</button>
-        <a href="<?= $id ? '/projetos/' . (int) $id : '/projetos' ?>">Cancelar</a>
+        <a class="btn secundario" href="<?= $id ? '/projetos/' . (int) $id : '/projetos' ?>">Cancelar</a>
     </div>
 </form>
 <script src="/assets/projeto-form.js"></script>

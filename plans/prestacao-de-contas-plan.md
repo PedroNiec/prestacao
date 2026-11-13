@@ -166,9 +166,9 @@ Cada etapa termina com um checkpoint para você validar antes da próxima.
 - [x] Etapa 6: **Balancete (doc. 1)** — lançamentos, totais e PDF.
 - [x] Etapa 7: **Físico-financeiro (doc. 22)** — cálculo a partir do balancete, sobrescritas e PDF.
 - [x] Etapa 8: **Conciliação bancária (doc. 15)** — cálculo, sobrescritas e PDF.
-- [ ] Etapa 9: **Relação de bens (doc. 9)** — itens, total e PDF.
-- [ ] Etapa 10: **Entrega** — ZIP numerado, download individual e acabamento.
-- [ ] Etapa 11: **Validação final** — critérios de aceitação, relatório e pendências.
+- [x] Etapa 9: **Relação de bens (doc. 9)** *(2026-11-12; ver `specs/relacao-de-bens.md`)* — itens, total e PDF.
+- [x] Etapa 10: **Entrega** *(2026-11-12; ver `specs/zip-prestacao.md`)* — ZIP numerado, download individual e acabamento.
+- [x] Etapa 11: **Validação final** *(2026-11-12; relatório em `docs/VALIDACAO-FINAL.md`)* — critérios de aceitação, relatório e pendências.
 
 ## 10. Testes e validações
 

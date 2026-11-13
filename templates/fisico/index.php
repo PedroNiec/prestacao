@@ -1,38 +1,34 @@
 <?php
+use App\Core\View;
 use App\Domain\Money;
 
 $base = '/projetos/' . (int) $projeto['id'];
-$desatualizado = $final && (int) $final['desatualizado'] === 1;
 $q = fn (int $v) => e(Money::formatQuantidade($v));
 $m = fn (int $v) => e(Money::format($v));
 ?>
-<p><a href="<?= e($base) ?>#doc-22">← Voltar ao projeto #<?= (int) $projeto['id'] ?></a></p>
-<div class="barra">
-    <h1>22 — Relatório de execução físico-financeiro</h1>
+<?= View::render("partes/trilha", ["projeto" => $projeto, "ancora" => "#doc-22", "itens" => [["22 Físico-financeiro"]]], false) ?>
+<div class="barra projeto-cab">
+    <div class="projeto-titulo">
+        <h1>22 — Relatório de execução físico-financeiro</h1>
+        <p class="projeto-sub"><?= e($projeto["municipio_nome"]) ?> - <?= e($projeto["municipio_uf"]) ?> · Projeto #<?= (int) $projeto["id"] ?></p>
+    </div>
     <a class="btn" href="<?= e($base) ?>/fisico-financeiro/linhas/novo">Nova meta/etapa</a>
 </div>
-<p>Todos os valores são digitados por você; nenhum é calculado a partir do balancete. Os totais por linha e do relatório são somas automáticas.</p>
+<p class="dica">Todos os valores são digitados por você; nenhum é calculado a partir do balancete. Os totais por linha e do relatório são somas automáticas.</p>
 
-<div class="caixa">
-    <?php if (!$final): ?>
-        <span class="tag vazio">PDF não gerado</span>
-    <?php elseif ($desatualizado): ?>
-        <span class="tag aviso-tag">Desatualizado</span> Os dados mudaram desde a última geração.
-    <?php else: ?>
-        <span class="tag ok">PDF gerado</span> <small><?= e(format_bytes((int) $final['tamanho'])) ?> · <?= e($final['atualizado_em']) ?></small>
-    <?php endif; ?>
-    <div class="acoes" style="margin-top:.6rem">
-        <form method="post" action="<?= e($base) ?>/fisico-financeiro/gerar"><?= csrf_field() ?><button class="btn" type="submit">Gerar PDF</button></form>
-        <?php if ($final): ?>
-            <a href="<?= e($base) ?>/documentos/22/baixar?ver=1" target="_blank" rel="noopener">Ver</a>
-            <a href="<?= e($base) ?>/documentos/22/baixar">Baixar</a>
-        <?php endif; ?>
-    </div>
-</div>
+<?= View::render("partes/pdf", [
+    "final" => $final, "gerar" => $base . "/fisico-financeiro/gerar", "baixar" => $base . "/documentos/22/baixar",
+    "textos" => ["vazio" => "PDF não gerado", "gerado" => "PDF gerado", "desatualizado" => "Os dados mudaram desde a última geração."],
+], false) ?>
 
 <?php if (!$linhas): ?>
-    <p class="aviso">Nenhuma meta/etapa ainda. Adicione ao menos uma linha.</p>
+    <div class="estado-vazio">
+        <strong>Nenhuma meta/etapa ainda.</strong>
+        Adicione ao menos uma linha.<br>
+        <a class="btn" href="<?= e($base) ?>/fisico-financeiro/linhas/novo">Nova meta/etapa</a>
+    </div>
 <?php else: ?>
+<section class="cartao secao">
 <h2>Físico</h2>
 <div class="rolagem"><table>
     <thead>
@@ -64,7 +60,9 @@ $m = fn (int $v) => e(Money::format($v));
         <?php endif; ?>
     </tr></tfoot>
 </table></div>
+</section>
 
+<section class="cartao secao">
 <h2>Financeiro</h2>
 <div class="rolagem"><table>
     <thead>
@@ -88,4 +86,5 @@ $m = fn (int $v) => e(Money::format($v));
         <th class="num"><?= $m($financeiro['fin_conc_ate']) ?></th><th class="num"><?= $m($financeiro['fin_exec_ate']) ?></th><th class="num"><?= $m($financeiro['total_ate']) ?></th>
     </tr></tfoot>
 </table></div>
+</section>
 <?php endif; ?>

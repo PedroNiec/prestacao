@@ -2,7 +2,7 @@
 $base = '/projetos/' . (int) $projeto['id'];
 $v = fn (string $k) => e($n[$k] ?? '');
 ?>
-<p><a href="<?= e($base) ?>/conciliacao#notas">← Voltar à conciliação</a></p>
+<?= \App\Core\View::render("partes/trilha", ["projeto" => $projeto, "ancora" => "#doc-15", "itens" => [["15 Conciliação bancária", $base . "/conciliacao#notas"], [$titulo]]], false) ?>
 <h1><?= e($titulo) ?></h1>
 <form method="post" action="<?= e($action) ?>" class="form">
     <?= csrf_field() ?>
@@ -22,6 +22,6 @@ $v = fn (string $k) => e($n[$k] ?? '');
     </fieldset>
     <div class="botoes">
         <button class="btn" type="submit">Salvar</button>
-        <a href="<?= e($base) ?>/conciliacao#notas">Cancelar</a>
+        <a class="btn secundario" href="<?= e($base) ?>/conciliacao#notas">Cancelar</a>
     </div>
 </form>
