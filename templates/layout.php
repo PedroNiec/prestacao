@@ -13,6 +13,7 @@ $mensagens = \App\Core\Session::pullFlash();
     <title><?= e($titulo) ?> — Prestação de Contas</title>
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
     <link rel="stylesheet" href="/assets/app.css">
+    <script>try{if(localStorage.getItem('lateral')==='1')document.documentElement.className='lateral-recolhida'}catch(e){}</script>
     <script src="/assets/app.js" defer></script>
 </head>
 <body>
@@ -25,6 +26,7 @@ $mensagens = \App\Core\Session::pullFlash();
         <a href="/municipios"<?= $ativo('/municipios') ? ' aria-current="page"' : '' ?>>Municípios</a>
     </nav>
     <a class="lateral-rodape" href="/guia-visual">Guia visual</a>
+    <button type="button" class="lateral-toggle" aria-expanded="true" aria-controls="conteudo" aria-label="Recolher menu lateral"><span aria-hidden="true">&#8249;</span><span class="lt-txt">Recolher</span></button>
 </header>
 <div class="app-principal">
 <main class="conteudo" id="conteudo" tabindex="-1">
