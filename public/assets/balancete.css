@@ -1,0 +1,20 @@
+/* balancete.css — balancete: lançamentos (carregado depois do app.css). Limite do teste: 16 KB. */
+
+/* 13. BALANCETE: lançar na própria tela (specs/balancete-lancamento-na-tela.md) */
+.form-cheia { max-width: none; }
+.linha-nova td { background: var(--info-bg); }
+
+/* 14. BALANCETE: grade de lançamentos refinada */
+table.lanc tbody tr:nth-child(even) { background: #f8fafc; }
+table.lanc tbody tr:hover { background: var(--tabela-hover); }
+.lanc td { vertical-align: middle; padding-block: 3px; }
+.lanc-desc { min-width: 220px; font-weight: 500; }
+.lanc-desc small { display: block; line-height: 1.2; font-weight: 400; color: var(--texto-suave); font-size: var(--fs-xs); }
+.lanc-rec { color: var(--sucesso-fg); font-weight: 600; }
+.lanc-desp { color: var(--perigo-fg); font-weight: 600; }
+.nowrap { white-space: nowrap; }
+.lanc-menu { width: 44px; padding: 0 var(--esp-1); text-align: center; }
+.rolagem-menu { min-height: 240px; }
+.lanc .menu-mais > summary { width: 28px; height: 28px; }
+.lanc .menu-mais-painel { right: 100%; top: 0; bottom: auto; text-align: left; }
+.lanc tbody tr:nth-last-child(-n+3) .menu-mais-painel { top: auto; bottom: 0; }

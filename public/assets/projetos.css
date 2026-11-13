@@ -1,0 +1,37 @@
+/* projetos.css — lista de Projetos (carregado depois do app.css). Limite do teste: 16 KB. */
+
+/* 12. LISTA DE PROJETOS (spec redesenho-lista-projetos) -------------------- */
+.lista-projetos { display: grid; gap: var(--esp-3); margin: 0; padding: 0; list-style: none; }
+.cartao-projeto {
+    position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--esp-4);
+    padding: var(--esp-4) var(--esp-5);
+    background: var(--superficie); border: 1px solid var(--borda-suave); border-radius: var(--raio-2); box-shadow: var(--sombra-1);
+    transition: box-shadow 0.15s, border-color 0.15s;
+}
+.cartao-projeto:hover { border-color: #c3ccd5; box-shadow: var(--sombra-2); }
+.cartao-projeto:focus-within { outline: 2px solid var(--foco); outline-offset: 2px; }
+.icone-pasta { width: 44px; height: 44px; border-radius: var(--raio-1); background: var(--cor-primaria-suave); position: relative; }
+.icone-pasta::before, .estado-vazio--pasta::after {
+    content: ""; background: var(--cor-primaria);
+    -webkit-mask: var(--icone-pasta) center / contain no-repeat; mask: var(--icone-pasta) center / contain no-repeat;
+}
+.icone-pasta::before { position: absolute; inset: 11px; }
+.cartao-projeto-titulo { margin: 0; font-size: var(--fs-base); line-height: 1.35; overflow-wrap: anywhere; }
+.projeto-link { color: var(--texto); text-decoration: none; }
+.projeto-link:focus-visible { outline: none; }
+/* link "esticado": o cartão inteiro fica clicável com um único link */
+.projeto-link::after { content: ""; position: absolute; inset: 0; border-radius: var(--raio-2); }
+.cartao-projeto:hover .projeto-link { color: var(--cor-primaria); }
+.cartao-projeto-abrir { color: var(--cor-primaria); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+/* Estado vazio com ícone de pasta */
+.estado-vazio--pasta::before {
+    content: ""; display: block; width: 48px; height: 48px; margin: 0 auto var(--esp-3); border-radius: 50%; background: var(--cor-primaria-suave);
+}
+.estado-vazio--pasta { position: relative; }
+.estado-vazio--pasta::after { position: absolute; top: calc(var(--esp-6) + 12px); left: calc(50% - 12px); width: 24px; height: 24px; }
+@media (max-width: 640px) {
+    .cartao-projeto { grid-template-columns: auto minmax(0, 1fr); gap: var(--esp-2) var(--esp-3); padding: var(--esp-3) var(--esp-4); }
+    .cartao-projeto-abrir { grid-column: 2; }
+    .icone-pasta { width: 36px; height: 36px; }
+    .icone-pasta::before { inset: 8px; }
+}

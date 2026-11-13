@@ -13,6 +13,9 @@ $mensagens = \App\Core\Session::pullFlash();
     <title><?= e($titulo) ?> — Prestação de Contas</title>
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
     <link rel="stylesheet" href="/assets/app.css">
+<?php if (!empty($cssArea)): ?>
+    <link rel="stylesheet" href="/assets/<?= e($cssArea) ?>.css">
+<?php endif; ?>
     <script>try{if(localStorage.getItem('lateral')==='1')document.documentElement.className='lateral-recolhida'}catch(e){}</script>
     <script src="/assets/app.js" defer></script>
 </head>

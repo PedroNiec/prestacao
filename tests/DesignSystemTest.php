@@ -29,15 +29,34 @@ final class DesignSystemTest extends TestCase
 
     // ---------- utilidades ----------
 
-    private function css(): string
+    /** CSS compartilhado (base): tokens, componentes, layout. */
+    private function cssBase(): string
     {
         return (string) file_get_contents($this->raiz . '/public/assets/app.css');
+    }
+
+    /** @return string[] nomes dos arquivos de CSS de área (ex.: projetos.css), sem a base (specs/css-por-area.md) */
+    private function arquivosArea(): array
+    {
+        $nomes = array_map('basename', glob($this->raiz . '/public/assets/*.css') ?: []);
+        return array_values(array_diff($nomes, ['app.css']));
+    }
+
+    private function cssArea(string $arquivo): string
+    {
+        return (string) file_get_contents($this->raiz . '/public/assets/' . $arquivo);
+    }
+
+    /** Todo o CSS (base + áreas), para os testes que valem para o conjunto. */
+    private function css(): string
+    {
+        return $this->cssBase() . implode("\n", array_map(fn ($a) => $this->cssArea($a), $this->arquivosArea()));
     }
 
     /** @return array<string,string> token => #rrggbb */
     private function tokens(): array
     {
-        preg_match('/:root\s*\{(.*?)\n\}/s', $this->css(), $bloco);
+        preg_match('/:root\s*\{(.*?)\n\}/s', $this->cssBase(), $bloco);
         preg_match_all('/--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})\b/', $bloco[1] ?? '', $m, PREG_SET_ORDER);
         $out = [];
         foreach ($m as [, $nome, $hex]) {
@@ -102,7 +121,7 @@ final class DesignSystemTest extends TestCase
 
     public function testRequiredTokensExist(): void
     {
-        $css = $this->css();
+        $css = $this->cssBase();
         foreach (['--esp-1', '--esp-4', '--esp-7', '--raio-1', '--raio-2', '--sombra-1', '--sombra-2', '--fs-base', '--fs-2xl', '--larg', '--larg-ampla', '--fonte'] as $t) {
             $this->assertStringContainsString($t . ':', $css, "token $t ausente");
         }
@@ -144,19 +163,70 @@ final class DesignSystemTest extends TestCase
         return $usadas;
     }
 
+    /** Área de um template (primeiro segmento do caminho; guia_visual.php → guia-visual), como em View::areaCss(). */
+    private function areaDoTemplate(string $rel): string
+    {
+        return str_replace('_', '-', preg_replace('/\.php$/', '', explode('/', $rel)[0]) ?? '');
+    }
+
+    /** @return string[] classes definidas num trecho de CSS */
+    private function classesEm(string $css): array
+    {
+        $css = preg_replace('#/\*.*?\*/#s', '', $css) ?? '';
+        $css = preg_replace('#url\([^)]*\)#', '', $css) ?? '';
+        preg_match_all('/\.([a-zA-Z][\w-]*)/', $css, $m);
+        return array_values(array_unique($m[1]));
+    }
+
+    /** Toda classe usada por um template está na base ou no CSS da área desse template (a tela só carrega esses dois). */
     public function testEveryClassUsedInTemplatesIsDefinedInCss(): void
     {
-        $definidas = $this->classesDefinidas();
+        $base = $this->classesEm($this->cssBase());
+        $porArea = [];
+        foreach ($this->arquivosArea() as $arq) {
+            $porArea[basename($arq, '.css')] = $this->classesEm($this->cssArea($arq));
+        }
         $faltando = [];
         foreach ($this->classesUsadasNosTemplates() as $classe => $arquivos) {
-            $ok = str_ends_with($classe, '*')
-                ? array_filter($definidas, fn ($d) => str_starts_with($d, rtrim($classe, '*')))   // sufixo dinâmico (ex.: msg-ok/msg-erro)
-                : in_array($classe, $definidas, true);
-            if (!$ok) {
-                $faltando[] = $classe . ' (' . implode(', ', array_unique($arquivos)) . ')';
+            foreach (array_unique($arquivos) as $rel) {
+                $definidas = array_merge($base, $porArea[$this->areaDoTemplate($rel)] ?? []);
+                $ok = str_ends_with($classe, '*')
+                    ? array_filter($definidas, fn ($d) => str_starts_with($d, rtrim($classe, '*')))   // sufixo dinâmico (ex.: msg-ok/msg-erro)
+                    : in_array($classe, $definidas, true);
+                if (!$ok) {
+                    $faltando[] = "$classe ($rel)";
+                }
             }
         }
-        $this->assertSame([], $faltando, 'classes usadas nos templates sem definição no CSS');
+        $this->assertSame([], $faltando, 'classes usadas nos templates sem definição na base nem no CSS da própria área');
+    }
+
+    /** Classe que só existe num arquivo de área não pode ser usada por templates de outra área (ela não seria carregada lá). */
+    public function testAreaOnlyClassesAreUsedOnlyByTheirArea(): void
+    {
+        $base = $this->classesEm($this->cssBase());
+        $usadas = $this->classesUsadasNosTemplates();
+        $fora = [];
+        foreach ($this->arquivosArea() as $arq) {
+            $area = basename($arq, '.css');
+            foreach (array_diff($this->classesEm($this->cssArea($arq)), $base) as $classe) {
+                foreach (array_unique($usadas[$classe] ?? []) as $rel) {
+                    if ($this->areaDoTemplate($rel) !== $area) {
+                        $fora[] = "$classe ($arq) usada em $rel";
+                    }
+                }
+            }
+        }
+        $this->assertSame([], $fora);
+    }
+
+    public function testAreaCssFilesDoNotDefineTokens(): void
+    {
+        foreach ($this->arquivosArea() as $arq) {
+            $css = (string) preg_replace('#/\*.*?\*/#s', '', $this->cssArea($arq));
+            $this->assertStringNotContainsString(':root', $css, "$arq: tokens (:root) só na base");
+            $this->assertDoesNotMatchRegularExpression('/(^|[;{\s])--[a-z0-9-]+\s*:/', $css, "$arq: não define variáveis; só usa as da base");
+        }
     }
 
     public function testLegacyClassesRemainDefined(): void
@@ -164,7 +234,7 @@ final class DesignSystemTest extends TestCase
         // Compatibilidade (RF-V00): nomes herdados das etapas anteriores não podem sumir.
         $legado = ['btn', 'secundario', 'perigo', 'link', 'tag', 'vazio', 'ok', 'aviso-tag', 'form', 'caixa', 'dados', 'aviso', 'msg', 'msg-ok', 'msg-erro',
                    'rolagem', 'num', 'acoes', 'linha', 'botoes', 'dica', 'arq', 'breve', 'envio', 'lista-arquivos', 'arrastando', 'nome', 'alca',
-                   'compacta', 'form-larga', 'inline', 'barra', 'conteudo', 'topo', 'marca'];
+                   'compacta', 'inline', 'barra', 'conteudo', 'topo', 'marca'];
         $this->assertSame([], array_values(array_diff($legado, $this->classesDefinidas())));
     }
 
@@ -180,9 +250,11 @@ final class DesignSystemTest extends TestCase
 
     public function testCssBracesAndParenthesesAreBalanced(): void
     {
-        $css = (string) preg_replace('#/\*.*?\*/#s', '', $this->css());
-        $this->assertSame(substr_count($css, '{'), substr_count($css, '}'), 'chaves desbalanceadas');
-        $this->assertSame(substr_count($css, '('), substr_count($css, ')'), 'parênteses desbalanceados');
+        foreach (array_merge(['app.css'], $this->arquivosArea()) as $arq) {
+            $css = (string) preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents($this->raiz . '/public/assets/' . $arq));
+            $this->assertSame(substr_count($css, '{'), substr_count($css, '}'), "$arq: chaves desbalanceadas");
+            $this->assertSame(substr_count($css, '('), substr_count($css, ')'), "$arq: parênteses desbalanceados");
+        }
     }
 
     public function testCssHasNoImportantOutsideReducedMotion(): void
@@ -196,14 +268,17 @@ final class DesignSystemTest extends TestCase
 
     public function testSizeLimits(): void
     {
-        // Limite elevado de 30 para 40 KB na DEC-L3 (specs/redesenho-layout-municipios.md): sistema local, sem custo de rede.
-        $this->assertLessThanOrEqual(40 * 1024, filesize($this->raiz . '/public/assets/app.css'), 'CSS acima de 40 KB');
+        // Base: 40 KB (limite elevado de 30 para 40 KB na DEC-L3, sistema local). Cada arquivo de área: 16 KB (specs/css-por-area.md, RN-01).
+        $this->assertLessThanOrEqual(40 * 1024, filesize($this->raiz . '/public/assets/app.css'), 'CSS base acima de 40 KB');
+        foreach ($this->arquivosArea() as $arq) {
+            $this->assertLessThanOrEqual(16 * 1024, filesize($this->raiz . '/public/assets/' . $arq), "$arq acima de 16 KB");
+        }
         $this->assertLessThanOrEqual(3 * 1024, filesize($this->raiz . '/public/assets/app.js'), 'JS global acima de 3 KB');
     }
 
     public function testNoExternalResources(): void
     {
-        $arquivos = ['public/assets/app.css', 'public/assets/app.js', 'public/assets/favicon.svg', 'templates/layout.php', 'templates/erro.php', 'templates/guia_visual.php'];
+        $arquivos = array_merge(['public/assets/app.css'], array_map(fn ($a) => 'public/assets/' . $a, $this->arquivosArea()), ['public/assets/app.js', 'public/assets/favicon.svg', 'templates/layout.php', 'templates/erro.php', 'templates/guia_visual.php']);
         foreach ($arquivos as $a) {
             preg_match_all('#https?://[^\s"\')<>]+#', (string) file_get_contents($this->raiz . '/' . $a), $m);
             foreach ($m[0] as $url) {

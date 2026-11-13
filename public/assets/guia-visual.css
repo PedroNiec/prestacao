@@ -1,0 +1,26 @@
+/* guia-visual.css — página /guia-visual (carregado depois do app.css). Limite do teste: 16 KB. */
+
+/* 7. GUIA VISUAL (página /guia-visual: somente leitura) -------------------- */
+.guia-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: var(--esp-3); }
+.amostra { display: flex; align-items: center; gap: var(--esp-3); font-size: var(--fs-sm); }
+.amostra code { color: var(--texto-suave); font-size: var(--fs-xs); display: block; }
+.amostra-cor { flex: none; width: 44px; height: 44px; border-radius: var(--raio-1); border: 1px solid var(--borda-campo); }
+.sw-primaria { background: var(--cor-primaria); }
+.sw-primaria-hover { background: var(--cor-primaria-hover); }
+.sw-primaria-suave { background: var(--cor-primaria-suave); }
+.sw-fundo { background: var(--fundo); }
+.sw-superficie { background: var(--superficie); }
+.sw-texto { background: var(--texto); }
+.sw-texto-suave { background: var(--texto-suave); }
+.sw-borda-suave { background: var(--borda-suave); }
+.sw-borda-campo { background: var(--borda-campo); }
+.sw-sucesso { background: var(--sucesso-bg); border-color: var(--sucesso-fg); }
+.sw-aviso { background: var(--aviso-bg); border-color: var(--aviso-fg); }
+.sw-perigo { background: var(--perigo-bg); border-color: var(--perigo-fg); }
+.sw-info { background: var(--info-bg); border-color: var(--info-fg); }
+.sw-neutro { background: var(--neutro-bg); border-color: var(--neutro-fg); }
+.sw-perigo-solido { background: var(--perigo-solido); }
+.sw-tabela-cab { background: var(--tabela-cab); }
+.guia-demo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--esp-3); margin-bottom: var(--esp-3); }
+.guia-bloco { margin-bottom: var(--esp-4); }
+.guia-nav { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-3); margin: 0 0 var(--esp-4); padding: 0; list-style: none; font-size: var(--fs-sm); }

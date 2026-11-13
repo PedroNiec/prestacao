@@ -19,7 +19,25 @@ final class View
         if (!$layout) {
             return $content;
         }
-        return self::capture('layout', $data + ['content' => $content, 'titulo' => $data['titulo'] ?? 'Prestação de Contas']);
+        return self::capture('layout', $data + [
+            'content' => $content,
+            'titulo' => $data['titulo'] ?? 'Prestação de Contas',
+            'cssArea' => self::areaCss($name),
+        ]);
+    }
+
+    /**
+     * CSS da área do template: public/assets/<área>.css, onde <área> é o primeiro segmento do nome
+     * (projetos/index → projetos; guia_visual → guia-visual). Devolve null se o arquivo não existir
+     * (specs/css-por-area.md). O valor vem do nome do template, nunca da entrada do usuário.
+     */
+    public static function areaCss(string $template): ?string
+    {
+        $area = str_replace('_', '-', explode('/', $template)[0]);
+        if ($area === 'app' || !preg_match('/^[a-z0-9-]+$/', $area)) {
+            return null;
+        }
+        return is_file(dirname(__DIR__, 2) . '/public/assets/' . $area . '.css') ? $area : null;
     }
 
     private static function capture(string $name, array $data): string
