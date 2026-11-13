@@ -114,6 +114,24 @@ final class ConversionServiceTest extends TestCase
         $this->assertCount($antes, Support::sobrasDeConversao());
     }
 
+    public function testZipThatIsNotAPresentationIsRejectedBeforeLibreOffice(): void
+    {
+        // specs/suporte-windows.md: o LibreOffice 26.x converteria qualquer coisa; o conversor recusa antes
+        $f = $this->tmp[] = tempnam(sys_get_temp_dir(), 'zipfake');
+        $z = new \ZipArchive();
+        $z->open($f, \ZipArchive::OVERWRITE);
+        $z->addFromString('documento.txt', 'não é uma apresentação');
+        $z->close();
+        $antes = count(Support::sobrasDeConversao());
+        try {
+            $this->svc('programa-que-nao-existe')->pptxToPdf($f);
+            $this->fail('Deveria recusar');
+        } catch (UploadException $e) {
+            $this->assertStringContainsString('não é uma apresentação .pptx', $e->getMessage());
+        }
+        $this->assertCount($antes, Support::sobrasDeConversao(), 'nada é criado');
+    }
+
     public function testFakePptxFailsWithClearMessageAndCleansUp(): void
     {
         if (!Support::soffice()) {

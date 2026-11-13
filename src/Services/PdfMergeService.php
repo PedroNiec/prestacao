@@ -14,7 +14,7 @@ final class PdfMergeService
 {
     public function __construct(private ?string $gs = null, private int $timeout = 180)
     {
-        $this->gs ??= getenv('PRESTACAO_GS') ?: 'gs';
+        $this->gs ??= Ferramentas::ghostscript();   // Linux: gs; Windows: gswin64c (specs/suporte-windows.md)
     }
 
     public function available(): bool
@@ -30,7 +30,7 @@ final class PdfMergeService
     {
         $r = $this->run([
             '-q', '-dNODISPLAY', '-dBATCH', '-dNOPAUSE', '-dSAFER',
-            '--permit-file-read=' . $path, '-sPDFname=' . $path,
+            '--permit-file-read=' . Ferramentas::caminhoGs($path), '-sPDFname=' . Ferramentas::caminhoGs($path),
             '-c', 'PDFname (r) file runpdfbegin pdfpagecount = quit',
         ], 60);
         if ($r['code'] !== 0 || str_contains($r['out'], '****')) {
@@ -54,7 +54,7 @@ final class PdfMergeService
             throw new PdfMergeException('Não há arquivos para juntar.');
         }
         if (!$this->available()) {
-            throw new PdfMergeException('Ghostscript (gs) não está instalado ou não pôde ser executado.');
+            throw new PdfMergeException('O Ghostscript não está instalado ou não pôde ser executado. No Windows: instale o "Ghostscript AGPL Release" de https://ghostscript.com/releases/gsdnld.html (ou defina PRESTACAO_GS). No Linux: sudo apt install ghostscript.');
         }
 
         // 1) Todo arquivo precisa ser legível; senão nada é gerado.
@@ -73,8 +73,8 @@ final class PdfMergeService
         $r = $this->run(array_merge(
             ['-dBATCH', '-dNOPAUSE', '-dQUIET', '-dSAFER', '-sDEVICE=pdfwrite',
              '-dDownsampleColorImages=false', '-dDownsampleGrayImages=false', '-dDownsampleMonoImages=false',
-             '-sOutputFile=' . $saida],
-            array_column($arquivos, 'path')
+             '-sOutputFile=' . Ferramentas::caminhoGs($saida)],
+            array_map(Ferramentas::caminhoGs(...), array_column($arquivos, 'path'))
         ), $this->timeout);
         if ($r['code'] !== 0 || str_contains($r['out'], '****') || !is_file($saida) || filesize($saida) === 0) {
             @unlink($saida);

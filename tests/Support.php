@@ -3,9 +3,27 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use App\Services\Ferramentas;
+
 /** Utilitários de teste para arquivos de upload. */
 final class Support
 {
+    /**
+     * Executa um programa sem shell (lista de argumentos), igual no Windows e no Linux (specs/suporte-windows.md).
+     * @return array{code:int,out:string}
+     */
+    public static function rodar(array $args): array
+    {
+        $proc = @proc_open($args, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, null, ['HOME' => sys_get_temp_dir()] + getenv());
+        if (!is_resource($proc)) {
+            return ['code' => 127, 'out' => ''];
+        }
+        $out = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        return ['code' => proc_close($proc), 'out' => (string) $out];
+    }
+
     /** PDF mínimo e válido para finfo (application/pdf). */
     public const PDF = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\ntrailer<</Root 1 0 R/Size 4>>\n%%EOF\n";
 
@@ -30,15 +48,14 @@ final class Support
         for ($i = 1; $i <= $paginas; $i++) {
             $ps .= "50 700 moveto ($rotulo-$i) show showpage ";
         }
-        $args = ['gs', '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=pdfwrite', '-sOutputFile=' . $out];
+        $args = [Ferramentas::ghostscript(), '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=pdfwrite', '-sOutputFile=' . Ferramentas::caminhoGs($out)];
         if ($senha !== null) {
             array_push($args, '-sOwnerPassword=' . $senha, '-sUserPassword=' . $senha, '-dEncryptionR=3', '-dKeyLength=128');
         }
         array_push($args, '-c', $ps);
-        $cmd = implode(' ', array_map('escapeshellarg', $args));
-        exec($cmd . ' 2>&1', $o, $code);
-        if ($code !== 0) {
-            throw new \RuntimeException('Falha ao gerar PDF de teste: ' . implode("\n", $o));
+        $r = self::rodar($args);
+        if ($r['code'] !== 0) {
+            throw new \RuntimeException('Falha ao gerar PDF de teste: ' . $r['out']);
         }
         return $out;
     }
@@ -58,7 +75,7 @@ final class Support
     public static function texto(string $pdf): string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'txt');
-        exec(implode(' ', array_map('escapeshellarg', ['gs', '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=txtwrite', '-sOutputFile=' . $tmp, $pdf])) . ' >/dev/null 2>&1');
+        self::rodar([Ferramentas::ghostscript(), '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=txtwrite', '-sOutputFile=' . Ferramentas::caminhoGs($tmp), Ferramentas::caminhoGs($pdf)]);
         $texto = (string) file_get_contents($tmp);
         @unlink($tmp);
         return $texto;
@@ -68,8 +85,8 @@ final class Support
     public static function textoPagina(string $pdf, int $pagina): string
     {
         $tmp = tempnam(sys_get_temp_dir(), 'txt');
-        exec(implode(' ', array_map('escapeshellarg', ['gs', '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=txtwrite',
-            '-dFirstPage=' . $pagina, '-dLastPage=' . $pagina, '-sOutputFile=' . $tmp, $pdf])) . ' >/dev/null 2>&1');
+        self::rodar([Ferramentas::ghostscript(), '-q', '-dNOPAUSE', '-dBATCH', '-dSAFER', '-sDEVICE=txtwrite',
+            '-dFirstPage=' . $pagina, '-dLastPage=' . $pagina, '-sOutputFile=' . Ferramentas::caminhoGs($tmp), Ferramentas::caminhoGs($pdf)]);
         $texto = (string) file_get_contents($tmp);
         @unlink($tmp);
         return $texto;
@@ -108,17 +125,16 @@ final class Support
         mkdir($dir . '/perfil', 0700, true);
         $slide = fn ($t) => '<draw:page draw:name="' . $t . '"><draw:frame svg:width="20cm" svg:height="3cm" svg:x="2cm" svg:y="2cm"><draw:text-box><text:p>' . $t . '</text:p></draw:text-box></draw:frame></draw:page>';
         file_put_contents($dir . '/deck.fodp', '<?xml version="1.0" encoding="UTF-8"?><office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" office:version="1.2" office:mimetype="application/vnd.oasis.opendocument.presentation"><office:body><office:presentation>' . $slide('SLIDE-UM') . $slide('SLIDE-DOIS') . '</office:presentation></office:body></office:document>');
-        exec(implode(' ', array_map('escapeshellarg', ['soffice', '--headless', '-env:UserInstallation=file://' . $dir . '/perfil', '--convert-to', 'pptx', '--outdir', $dir, $dir . '/deck.fodp'])) . ' 2>&1', $o, $code);
+        $r = self::rodar([Ferramentas::libreOffice(), '--headless', '-env:UserInstallation=' . Ferramentas::urlArquivo($dir . '/perfil'), '--convert-to', 'pptx', '--outdir', $dir, $dir . '/deck.fodp']);
         if (!is_file($dir . '/deck.pptx')) {
-            throw new \RuntimeException('Falha ao criar PPTX de teste: ' . implode("\n", $o));
+            throw new \RuntimeException('Falha ao criar PPTX de teste: ' . $r['out']);
         }
         return $cache = $dir . '/deck.pptx';
     }
 
     public static function soffice(): bool
     {
-        exec('soffice --version 2>&1', $o, $code);
-        return $code === 0;
+        return self::rodar([Ferramentas::libreOffice(), '--version'])['code'] === 0;
     }
 
     /** Remove pastas temporárias de conversão deixadas para trás. */

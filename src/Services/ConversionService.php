@@ -26,7 +26,7 @@ final class ConversionService
         private ?string $soffice = null,
         private int $timeout = 180,
     ) {
-        $this->soffice ??= getenv('PRESTACAO_SOFFICE') ?: 'soffice';
+        $this->soffice ??= Ferramentas::libreOffice();   // Linux: soffice; Windows: Program Files\LibreOffice (specs/suporte-windows.md)
     }
 
     /** @throws UploadException */
@@ -75,6 +75,11 @@ final class ConversionService
     /** @throws UploadException */
     public function pptxToPdf(string $pptxPath): string
     {
+        // O LibreOffice 26.x (Windows) converte qualquer arquivo em PDF, até texto renomeado para .pptx;
+        // por isso o próprio conversor confere que é uma apresentação de verdade (specs/suporte-windows.md).
+        if (!self::ehPptx($pptxPath)) {
+            throw new UploadException('Não foi possível converter o PowerPoint. O arquivo pode estar corrompido ou não é uma apresentação .pptx.');
+        }
         $tmp = sys_get_temp_dir() . '/prestacao_lo_' . bin2hex(random_bytes(8));
         if (!mkdir($tmp . '/perfil', 0700, true)) {
             throw new UploadException('Não foi possível criar a pasta temporária de conversão.');
@@ -85,11 +90,11 @@ final class ConversionService
                 throw new UploadException('Não foi possível preparar o arquivo para conversão.');
             }
             $r = $this->run([
-                '--headless', '--norestore', '-env:UserInstallation=file://' . $tmp . '/perfil',
+                '--headless', '--norestore', '-env:UserInstallation=' . Ferramentas::urlArquivo($tmp . '/perfil'),
                 '--convert-to', 'pdf', '--outdir', $tmp, $entrada,
             ]);
             if ($r['code'] === 127) {
-                throw new UploadException('O LibreOffice não está instalado. Instale com: sudo apt install libreoffice-impress');
+                throw new UploadException('O LibreOffice não está instalado. No Windows: winget install --id TheDocumentFoundation.LibreOffice -e (ou defina PRESTACAO_SOFFICE). No Linux: sudo apt install libreoffice-impress');
             }
             if ($r['timeout']) {
                 throw new UploadException('A conversão demorou demais e foi cancelada.');
@@ -102,6 +107,18 @@ final class ConversionService
         } finally {
             $this->removeDir($tmp);
         }
+    }
+
+    /** Apresentação PowerPoint (OOXML): um ZIP que contém ppt/presentation.xml. */
+    private static function ehPptx(string $path): bool
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
+            return false;
+        }
+        $ok = $zip->locateName('ppt/presentation.xml') !== false;
+        $zip->close();
+        return $ok;
     }
 
     /** @return array{code:int,timeout:bool,out:string} */
