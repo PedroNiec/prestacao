@@ -61,7 +61,7 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 
 **Testes: 327, todos passando** (em 2026-11-13, no Linux; 328 no Windows antes da sessão de 2026-11-13). Rodar com `composer test`.
 
-**Git:** em 2026-11-13 há alterações **ainda não commitadas** (ver §3.3). Último commit: `c0cfeb3`.
+**Git:** tudo **commitado na `main` e enviado ao GitHub** (`9c4cc1f`, 2026-11-13). Diretório de trabalho limpo.
 
 ### 3.1 Sistema (plano `plans/prestacao-de-contas-plan.md`): **concluído**
 
@@ -99,7 +99,7 @@ adicionar dependências sem autorização; preservar o que já funciona; silênc
 
 ---
 
-### 3.3 Sessão de 2026-11-13 (Linux, **sem commit**)
+### 3.3 Sessão de 2026-11-13 (Linux; 4 commits: `fb3a044`, `7abf4bc`, `439386c`, `9c4cc1f`)
 
 | Mudança | Onde | Observação |
 |---|---|---|
@@ -277,7 +277,7 @@ arquivo no disco são aleatórios; o servidor só aceita `localhost`/`127.0.0.1`
 ## 9. Próximos passos (sugestão; o usuário escolhe)
 
 0. ~~Conciliação × balancete~~ **RESOLVIDO em 2026-11-13:** a conciliação ficou totalmente independente do balancete (receitas
-   e notas digitadas). Ver §3.3 e `specs/conciliacao-receitas-independentes.md`. **Pendente:** commitar o trabalho da sessão.
+   e notas digitadas). Ver §3.3 e `specs/conciliacao-receitas-independentes.md`.
 1. **Retomar o redesenho visual (fase 3)**, tela por tela, no estilo de Municípios (`specs/redesenho-layout-municipios.md`,
    CSS seções 10 a 12). Sugestão de ordem: tela do Projeto → formulários → balancete, conciliação e físico-financeiro →
    junção. **Antes da próxima tela, decidir o tamanho do CSS** (39,4 de 40 KB). Recomendado: limpar regras antigas que
