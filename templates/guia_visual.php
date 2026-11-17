@@ -21,19 +21,19 @@
 <h2 id="cores">Cores</h2>
 <p class="dica">Todas as cores vêm de variáveis (tokens) em <code>app.css</code>. Contraste de texto ≥ 4,5:1 e de bordas/foco ≥ 3:1, verificado por teste automático.</p>
 <div class="guia-grade">
-    <div class="amostra"><span class="amostra-cor sw-primaria"></span><span>Primária<code>--cor-primaria #1f4e79</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-primaria-hover"></span><span>Primária (hover)<code>--cor-primaria-hover #173d5f</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-primaria-suave"></span><span>Primária suave<code>--cor-primaria-suave #e8f0f7</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-fundo"></span><span>Fundo da página<code>--fundo #f4f6f8</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-primaria"></span><span>Primária<code>--cor-primaria #0d7480</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-primaria-hover"></span><span>Primária (hover)<code>--cor-primaria-hover #0a5a63</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-primaria-suave"></span><span>Primária suave<code>--cor-primaria-suave #e3f1f3</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-fundo"></span><span>Fundo da página<code>--fundo #f7f9fa</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-superficie"></span><span>Superfície<code>--superficie #ffffff</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-texto"></span><span>Texto<code>--texto #1f2933</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-texto-suave"></span><span>Texto suave<code>--texto-suave #52606d</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-texto"></span><span>Texto<code>--texto #1f3038</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-texto-suave"></span><span>Texto suave<code>--texto-suave #586670</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-borda-suave"></span><span>Borda suave (decorativa)<code>--borda-suave #d5dbe1</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-borda-campo"></span><span>Borda de campo<code>--borda-campo #7b8794</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-sucesso"></span><span>Sucesso<code>#e7f5ea / #166534</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-aviso"></span><span>Aviso<code>#fff3cd / #7a5b00</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-perigo"></span><span>Perigo<code>#fdecea / #9b1c1c</code></span></div>
-    <div class="amostra"><span class="amostra-cor sw-info"></span><span>Informação<code>#e8f0f7 / #1f4e79</code></span></div>
+    <div class="amostra"><span class="amostra-cor sw-info"></span><span>Informação<code>#e3f1f3 / #0a5a63</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-neutro"></span><span>Neutro<code>#e4e7eb / #3e4c59</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-perigo-solido"></span><span>Perigo sólido (botão)<code>--perigo-solido #b3261e</code></span></div>
     <div class="amostra"><span class="amostra-cor sw-tabela-cab"></span><span>Cabeçalho de tabela<code>--tabela-cab #eef2f6</code></span></div>

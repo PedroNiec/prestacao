@@ -1,29 +1,35 @@
 /* app.css — CSS compartilhado (tokens, base, layout, componentes, responsivo, telas compartilhadas).
    Regras de uma área só ficam em <área>.css (specs/css-por-area.md). Limite do teste: 40 KB. */
 
+/* Fonte embutida (specs/estilo-taste-sistema-todo.md, DEC-E2): Instrument Sans, subconjunto latino, licença OFL em fonts/OFL.txt. */
+@font-face {
+    font-family: "Instrument Sans"; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url("/assets/fonts/InstrumentSans-Variable.woff2") format("woff2");
+}
+
 /* 1. TOKENS ---------------------------------------------------------------- */
 :root {
     /* Identidade (mantida) */
-    --cor-primaria: #1f4e79;
-    --cor-primaria-hover: #173d5f;
-    --cor-primaria-suave: #e8f0f7;
-    --fundo: #f6f7f9;
+    --cor-primaria: #0d7480;
+    --cor-primaria-hover: #0a5a63;
+    --cor-primaria-suave: #e3f1f3;
+    --fundo: #f7f9fa;
     --superficie: #ffffff;
 
     /* Texto */
-    --texto: #1f2933;
-    --texto-suave: #52606d;
+    --texto: #1f3038;
+    --texto-suave: #586670;
 
     /* Bordas e foco */
     --borda-suave: #d5dbe1;     /* divisórias decorativas */
     --borda-campo: #7b8794;     /* bordas de campos e controles (>= 3:1) */
-    --foco: #1f4e79;            /* anel de foco (>= 3:1) */
+    --foco: #0d7480;            /* anel de foco (>= 3:1) */
 
     /* Estados (fundo / texto) — só para indicar estado */
     --sucesso-bg: #e7f5ea;  --sucesso-fg: #166534;
     --aviso-bg: #fff3cd;    --aviso-fg: #7a5b00;
     --perigo-bg: #fdecea;   --perigo-fg: #9b1c1c;
-    --info-bg: #e8f0f7;     --info-fg: #1f4e79;
+    --info-bg: #e3f1f3;     --info-fg: #0a5a63;
     --neutro-bg: #e4e7eb;   --neutro-fg: #3e4c59;
     --perigo-solido: #b3261e;
     --perigo-hover: #8f1d17;
@@ -43,7 +49,7 @@
     --sombra-2: 0 4px 12px rgba(31, 41, 51, 0.18);
 
     /* Tipografia (fonte do sistema: sem download) */
-    --fonte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --fonte: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --fs-xs: 0.75rem;   --fs-sm: 0.875rem; --fs-base: 1rem;
     --fs-lg: 1.25rem;   --fs-xl: 1.5rem;   --fs-2xl: 1.875rem;
 
@@ -80,6 +86,11 @@ small { font-size: var(--fs-sm); }
 .so-leitor {
     position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* Microinterações: só deslocam quando o sistema operacional permite movimento. */
+@media (prefers-reduced-motion: no-preference) {
+    .btn:active:not(:disabled):not([aria-disabled="true"]) { transform: translateY(1px) scale(0.98); }
+    button.link:active:not(:disabled) { transform: translateY(1px); }
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
@@ -124,22 +135,22 @@ nav { display: flex; flex-wrap: wrap; gap: var(--esp-1) var(--esp-2); }
 .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: var(--esp-2);
     min-height: 40px; padding: var(--esp-2) var(--esp-4);
-    border: 1px solid var(--cor-primaria); border-radius: var(--raio-1);
+    border: 1px solid var(--cor-primaria); border-radius: var(--raio-pill);
     background: var(--cor-primaria); color: #fff;
     font: inherit; font-weight: 600; line-height: 1.25; text-decoration: none; cursor: pointer;
-    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 .btn:hover { background: var(--cor-primaria-hover); border-color: var(--cor-primaria-hover); color: #fff; }
 .btn.secundario { background: var(--superficie); color: var(--cor-primaria); }
 .btn.secundario:hover { background: var(--cor-primaria-suave); color: var(--cor-primaria-hover); }
 .btn.perigo { background: var(--perigo-solido); border-color: var(--perigo-solido); }
 .btn.perigo:hover { background: var(--perigo-hover); border-color: var(--perigo-hover); color: #fff; }
-.btn.pequeno { min-height: 32px; padding: var(--esp-1) var(--esp-3); font-size: var(--fs-sm); }
+.btn.pequeno { min-height: 32px; padding: var(--esp-1) var(--esp-4); font-size: var(--fs-sm); }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 /* Ação discreta (texto): substitui o link sublinhado de ação de linha */
 button.link {
-    background: none; border: 0; border-radius: var(--raio-1);
-    padding: var(--esp-1) var(--esp-2); min-height: 32px;
+    background: none; border: 0; border-radius: var(--raio-pill);
+    padding: var(--esp-1) var(--esp-3); min-height: 32px;
     color: var(--cor-primaria); font: inherit; font-weight: 500; cursor: pointer;
     text-decoration: none;
 }
@@ -393,7 +404,7 @@ td.acoes > a, td.acoes > form { margin-right: var(--esp-2); }
 .lateral nav { flex-direction: column; gap: 2px; }
 .lateral nav a {
     display: flex; align-items: center; gap: var(--esp-3); padding: var(--esp-2) var(--esp-3);
-    border-radius: var(--raio-1); color: var(--texto-suave); font-weight: 500; text-decoration: none;
+    border-radius: var(--raio-pill); color: var(--texto-suave); font-weight: 500; text-decoration: none;
 }
 .lateral nav a::before {
     content: ""; flex: none; width: 20px; height: 20px; background: currentColor;

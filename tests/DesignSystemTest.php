@@ -106,6 +106,8 @@ final class DesignSystemTest extends TestCase
             'borda de campo / fundo' => ['borda-campo', 'fundo', 3.0], 'borda de campo / superfície' => ['borda-campo', 'superficie', 3.0],
             'anel de foco / fundo' => ['foco', 'fundo', 3.0], 'anel de foco / superfície' => ['foco', 'superficie', 3.0],
             'cabeçalho: branco / primária' => [$b, 'cor-primaria', 4.5],
+            'texto suave / total de tabela' => ['texto-suave', 'tabela-total', 4.5], 'texto suave / primária suave' => ['texto-suave', 'cor-primaria-suave', 4.5],
+            'link / primária suave' => ['cor-primaria', 'cor-primaria-suave', 4.5], 'texto suave / cabeçalho de tabela' => ['texto-suave', 'tabela-cab', 4.5],
         ];
     }
 
@@ -286,7 +288,68 @@ final class DesignSystemTest extends TestCase
             }
         }
         $this->assertStringNotContainsString('@import', $this->css());
-        $this->assertStringNotContainsString('@font-face', $this->css());
+        // Fonte embutida (specs/estilo-taste-sistema-todo.md, DEC-E2): só @font-face com arquivo local do próprio sistema.
+        preg_match_all('/@font-face\s*\{(.*?)\}/s', $this->css(), $faces);
+        foreach ($faces[1] as $face) {
+            preg_match_all('/url\(\s*["\']?([^"\')]+)["\']?\s*\)/', $face, $urls);
+            $this->assertNotEmpty($urls[1], '@font-face sem url()');
+            foreach ($urls[1] as $url) {
+                $this->assertStringStartsWith('/assets/fonts/', $url, "@font-face com fonte fora de /assets/fonts/: $url");
+            }
+        }
+    }
+
+    // ---------- estilo novo (specs/estilo-taste-sistema-todo.md) ----------
+
+    public function testEmbeddedFontExistsWithLicense(): void
+    {
+        preg_match('#url\("(/assets/fonts/[^"]+\.woff2)"\)#', $this->cssBase(), $m);
+        $this->assertNotEmpty($m, 'app.css deve declarar a fonte embutida em /assets/fonts/');
+        $arquivo = $this->raiz . '/public' . $m[1];
+        $this->assertFileExists($arquivo);
+        $this->assertSame('wOF2', substr((string) file_get_contents($arquivo, false, null, 0, 4), 0, 4), 'o arquivo da fonte não é um woff2');
+        $this->assertLessThanOrEqual(200 * 1024, filesize($arquivo), 'fonte acima de 200 KB');
+        $licenca = $this->raiz . '/public/assets/fonts/OFL.txt';
+        $this->assertFileExists($licenca);
+        $this->assertStringContainsString('SIL OPEN FONT LICENSE', (string) file_get_contents($licenca));
+    }
+
+    public function testFontTokenUsesInstrumentSansWithFallback(): void
+    {
+        preg_match('/--fonte:\s*([^;]+);/', $this->cssBase(), $m);
+        $this->assertStringStartsWith('"Instrument Sans"', trim($m[1] ?? ''));
+        $this->assertStringContainsString('system-ui', $m[1], 'a pilha de fallback deve continuar');
+    }
+
+    public function testOldBlueIdentityIsGone(): void
+    {
+        $arquivos = array_merge(
+            array_map(fn ($a) => 'public/assets/' . $a, array_merge(['app.css'], $this->arquivosArea())),
+            array_map(fn ($f) => substr($f, strlen($this->raiz) + 1), glob($this->raiz . '/templates/*.php') ?: []),
+            array_map(fn ($f) => substr($f, strlen($this->raiz) + 1), glob($this->raiz . '/templates/*/*.php') ?: [])
+        );
+        foreach ($arquivos as $a) {
+            if (str_starts_with($a, 'templates/pdf/')) {
+                continue; // os PDFs não recebem o estilo novo (RN-E02)
+            }
+            $conteudo = strtolower((string) file_get_contents($this->raiz . '/' . $a));
+            foreach (['1f4e79', '173d5f', 'e8f0f7'] as $antiga) {
+                $this->assertStringNotContainsString($antiga, $conteudo, "$a ainda usa a cor antiga #$antiga");
+            }
+        }
+    }
+
+    public function testButtonsArePills(): void
+    {
+        $this->assertMatchesRegularExpression('/\n\.btn \{[^}]*border-radius:\s*var\(--raio-pill\)/s', $this->cssBase());
+    }
+
+    public function testHoverAndPressMovementOnlyWhenMotionIsAllowed(): void
+    {
+        $css = (string) preg_replace('#/\*.*?\*/#s', '', $this->css());
+        $fora = (string) preg_replace('/@media \(prefers-reduced-motion: no-preference\)\s*\{.*?\n\}/s', '', $css);
+        preg_match_all('/[^{}]*:(?:hover|active)[^{}]*\{[^{}]*\btransform\s*:[^{}]*\}/', $fora, $m);
+        $this->assertSame([], $m[0], 'deslocamento em hover/active deve ficar dentro de @media (prefers-reduced-motion: no-preference)');
     }
 
     // ---------- layout global (CA-V04/V05/V07) ----------

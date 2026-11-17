@@ -44,6 +44,18 @@ final class MunicipiosTelaTest extends TestCase
         return $out;
     }
 
+    public function testFormKeepsAllFieldsAndUsesFlatSections(): void
+    {
+        $html = $this->get('/municipios/novo')->body;
+        $this->assertStringContainsString('class="form form-mun"', $html);
+        foreach (['nome', 'uf', 'prefeito_nome', 'contador_nome', 'contador_crc'] as $campo) {
+            $this->assertStringContainsString('name="' . $campo . '"', $html, "campo $campo sumiu do formulário");
+        }
+        $this->assertSame(2, substr_count($html, '<fieldset'), 'continuam dois grupos: identificação e signatários');
+        $css = (string) file_get_contents(dirname(__DIR__) . '/public/assets/municipios.css');
+        $this->assertMatchesRegularExpression('/\.form-mun fieldset\s*\{[^}]*border:\s*0/', $css, 'grupos sem caixa própria');
+    }
+
     public function testSidebarLayoutOnEveryScreen(): void
     {
         // CA-L01

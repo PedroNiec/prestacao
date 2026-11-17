@@ -1,6 +1,6 @@
 <?= \App\Core\View::render("partes/trilha", ["itens" => [["Municípios", "/municipios"], [$titulo]]], false) ?>
 <h1><?= e($titulo) ?></h1>
-<form method="post" action="<?= e($action) ?>" class="form">
+<form method="post" action="<?= e($action) ?>" class="form form-mun">
     <?= csrf_field() ?>
     <fieldset>
     <legend>Identificação</legend>
